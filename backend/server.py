@@ -331,11 +331,25 @@ async def broadcast_game_state(session_id: str):
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await manager.connect(websocket, session_id)
     try:
+        # Send initial game state
+        await broadcast_game_state(session_id)
+        
         while True:
-            data = await websocket.receive_text()
-            # Handle WebSocket messages if needed
-            await manager.send_personal_message(f"Message received: {data}", websocket)
+            # Keep connection alive and handle any client messages
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+                # Handle any WebSocket messages from client if needed
+                await manager.send_personal_message(f"Message received: {data}", websocket)
+            except asyncio.TimeoutError:
+                # Send periodic ping to keep connection alive
+                await websocket.send_text(json.dumps({"type": "ping"}))
+            except WebSocketDisconnect:
+                break
     except WebSocketDisconnect:
+        manager.disconnect(websocket, session_id)
+        print(f"WebSocket disconnected from session {session_id}")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
         manager.disconnect(websocket, session_id)
 
 @api_router.post("/create-session")
