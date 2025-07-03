@@ -103,29 +103,37 @@ function App() {
 
   const createSession = async () => {
     try {
+      setError('');
+      console.log('Creating session...');
       const response = await axios.post(`${API}/create-session`, {
         name: sessionName,
         player_name: playerName
       });
+      console.log('Session created:', response.data);
       setSessionId(response.data.session_id);
       setPlayerId(response.data.player_id);
       setError('');
     } catch (error) {
-      setError('Failed to create session');
+      console.error('Failed to create session:', error);
+      setError('Failed to create session: ' + (error.response?.data?.detail || error.message));
     }
   };
 
   const joinSession = async () => {
     try {
+      setError('');
+      console.log('Joining session...');
       const response = await axios.post(`${API}/join-session`, {
         session_id: sessionIdInput,
         player_name: playerName
       });
+      console.log('Joined session:', response.data);
       setSessionId(sessionIdInput);
       setPlayerId(response.data.player_id);
       setError('');
     } catch (error) {
-      setError('Failed to join session');
+      console.error('Failed to join session:', error);
+      setError('Failed to join session: ' + (error.response?.data?.detail || error.message));
     }
   };
 
