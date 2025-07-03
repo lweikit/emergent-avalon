@@ -57,32 +57,47 @@ function App() {
       ws.current.close();
     }
     
-    ws.current = new WebSocket(`${WS_URL}/ws/${sessionId}`);
+    const wsUrl = `${WS_URL}/ws/${sessionId}`;
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    ws.current = new WebSocket(wsUrl);
     
     ws.current.onopen = () => {
+      console.log('WebSocket connected');
       setIsConnected(true);
       setError('');
     };
     
     ws.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'game_state') {
-        setGameState(data);
+      try {
+        const data = JSON.parse(event.data);
+        console.log('Received WebSocket message:', data);
+        if (data.type === 'game_state') {
+          setGameState(data);
+        } else if (data.type === 'ping') {
+          // Ignore ping messages
+        }
+      } catch (e) {
+        console.error('Error parsing WebSocket message:', e);
       }
     };
     
-    ws.current.onclose = () => {
+    ws.current.onclose = (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
       setIsConnected(false);
-      // Reconnect after 3 seconds
-      setTimeout(() => {
-        if (sessionId) {
+      // Reconnect after 3 seconds if not intentionally closed
+      if (event.code !== 1000 && sessionId) {
+        setTimeout(() => {
+          console.log('Attempting to reconnect...');
           connectWebSocket();
-        }
-      }, 3000);
+        }, 3000);
+      }
     };
     
     ws.current.onerror = (error) => {
-      setError('WebSocket connection error');
+      console.error('WebSocket error:', error);
+      setError('Connection error. Trying to reconnect...');
+      setIsConnected(false);
     };
   };
 
