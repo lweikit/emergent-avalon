@@ -1,38 +1,458 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
 .App {
-    text-align: center;
+  text-align: center;
 }
 
 .App-logo {
-    height: 40vmin;
-    pointer-events: none;
+  height: 40vmin;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
 }
 
 .App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
 }
 
 .App-link {
-    color: #61dafb;
+  color: #61dafb;
 }
 
 @keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Smooth transitions */
+button {
+  transition: all 0.2s ease-in-out;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Role-specific colors */
+.role-good {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.role-evil {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* Mission status indicators */
+.mission-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.mission-fail {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.mission-pending {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
+/* Pulse animation for active elements */
+.pulse-active {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Game phase indicators */
+.phase-indicator {
+  position: relative;
+  overflow: hidden;
+}
+
+.phase-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease-in-out;
+}
+
+.phase-indicator:hover::before {
+  left: 100%;
+}
+
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  .mobile-stack {
+    flex-direction: column;
+  }
+  
+  .mobile-full {
+    width: 100%;
+  }
+  
+  .mobile-text-sm {
+    font-size: 0.875rem;
+  }
+}
+
+/* Custom focus styles */
+button:focus,
+input:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Loading states */
+.loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Connection status indicators */
+.connection-indicator {
+  position: relative;
+}
+
+.connection-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #10b981;
+}
+
+.connection-indicator.disconnected::before {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px #ef4444;
+}
+
+/* Game board styling */
+.game-board {
+  background: radial-gradient(circle at center, #1e1b4b, #312e81);
+  border: 2px solid #4c1d95;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(76, 29, 149, 0.3);
+}
+
+/* Player cards */
+.player-card {
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.player-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.player-card.selected {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+}
+
+/* Mission cards */
+.mission-card {
+  background: linear-gradient(135deg, #ffffff, #f9fafb);
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.mission-card.active {
+  border-color: #fbbf24;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.mission-card.success {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.mission-card.fail {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+}
+
+/* Vote indicators */
+.vote-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+.vote-approve {
+  background: #10b981;
+}
+
+.vote-reject {
+  background: #ef4444;
+}
+
+.vote-pending {
+  background: #6b7280;
+}
+
+/* Lady of the Lake special styling */
+.lady-of-lake {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border: 2px solid #d97706;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+}
+
+.lady-of-lake::before {
+  content: '🌟';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 24px;
+  animation: twinkle 2s infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+/* Assassination phase styling */
+.assassination-phase {
+  background: linear-gradient(135deg, #7c2d12, #991b1b);
+  border: 2px solid #dc2626;
+  border-radius: 16px;
+  color: white;
+  box-shadow: 0 0 30px rgba(220, 38, 38, 0.3);
+}
+
+/* Win/Loss announcements */
+.victory-announcement {
+  background: linear-gradient(135deg, #059669, #10b981);
+  border: 2px solid #047857;
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+  animation: victoryPulse 2s infinite;
+}
+
+.defeat-announcement {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  border: 2px solid #b91c1c;
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
+  animation: defeatPulse 2s infinite;
+}
+
+@keyframes victoryPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 60px rgba(16, 185, 129, 0.6);
+  }
+}
+
+@keyframes defeatPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 60px rgba(239, 68, 68, 0.6);
+  }
+}
+
+/* Utility classes for game states */
+.role-merlin {
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  color: white;
+}
+
+.role-percival {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: white;
+}
+
+.role-loyal-servant {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.role-morgana {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: white;
+}
+
+.role-assassin {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+}
+
+.role-mordred {
+  background: linear-gradient(135deg, #1f2937, #111827);
+  color: white;
+}
+
+.role-oberon {
+  background: linear-gradient(135deg, #4b5563, #374151);
+  color: white;
+}
+
+.role-minion {
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  color: white;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .responsive-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  
+  .responsive-text {
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .responsive-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .responsive-grid-2 {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
