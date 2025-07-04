@@ -337,8 +337,14 @@ async def broadcast_game_state(session_id: str):
                 "team_approved": current_mission.team_approved
             }
         
+        # Send personalized message to each connected player
         message = json.dumps(player_state)
-        await manager.broadcast_to_session(message, session_id)
+        if session_id in manager.active_connections:
+            for connection in manager.active_connections[session_id]:
+                try:
+                    await connection.send_text(message)
+                except:
+                    pass
 
 @app.websocket("/api/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
