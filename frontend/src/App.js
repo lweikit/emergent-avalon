@@ -52,10 +52,21 @@ function App() {
   const [ladyResult, setLadyResult] = useState(null);
   const [error, setError] = useState('');
   const [isConnected, setIsConnected] = useState(false);
+  const [wsRetryCount, setWsRetryCount] = useState(0);
   const ws = useRef(null);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('App initialized with:', {
+      BACKEND_URL,
+      API,
+      WS_URL
+    });
+  }, []);
 
   useEffect(() => {
     if (sessionId) {
+      console.log('Session ID changed, connecting WebSocket:', sessionId);
       connectWebSocket();
     }
     return () => {
