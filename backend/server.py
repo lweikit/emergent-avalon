@@ -923,6 +923,9 @@ async def vote_mission(request: MissionVoteRequest):
     await db.game_sessions.replace_one({"id": request.session_id}, game_session.dict())
     await broadcast_game_state(request.session_id)
     
+    # Trigger bot actions after player vote
+    asyncio.create_task(process_bot_actions(request.session_id))
+    
     return {"message": "Mission vote recorded successfully"}
 
 @api_router.post("/lady-of-lake")
