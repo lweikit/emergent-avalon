@@ -131,6 +131,7 @@ class Player(BaseModel):
     is_leader: bool = False
     is_connected: bool = True
     lady_of_the_lake: bool = False
+    is_bot: bool = False
 
 class Mission(BaseModel):
     number: int
