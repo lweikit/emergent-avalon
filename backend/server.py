@@ -1024,7 +1024,57 @@ async def debug_session(session_id: str):
         }
     }
     
-    return debug_info
+@api_router.post("/toggle-lady-of-lake")
+async def toggle_lady_of_lake(request: ToggleLadyOfLakeRequest):
+    """Toggle Lady of the Lake expansion on/off"""
+    session = await db.game_sessions.find_one({"id": request.session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    game_session = GameSession(**session)
+    
+    # Only allow toggling in lobby
+    if game_session.phase != GamePhase.LOBBY:
+        raise HTTPException(status_code=400, detail="Can only toggle Lady of the Lake in lobby")
+    
+    game_session.lady_of_the_lake_enabled = request.enabled
+    
+    await db.game_sessions.replace_one({"id": request.session_id}, game_session.dict())
+    await broadcast_game_state(request.session_id)
+    
+    return {"message": f"Lady of the Lake {'enabled' if request.enabled else 'disabled'}"}
+
+@api_router.post("/restart-game")
+async def restart_game(request: RestartGameRequest):
+    """Restart the game with the same players"""
+    session = await db.game_sessions.find_one({"id": request.session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    game_session = GameSession(**session)
+    
+    # Reset game state but keep players
+    for player in game_session.players:
+        player.role = None
+        player.is_leader = False
+        player.lady_of_the_lake = False
+    
+    game_session.phase = GamePhase.LOBBY
+    game_session.current_mission = 0
+    game_session.missions = []
+    game_session.current_leader = 0
+    game_session.vote_track = 0
+    game_session.lady_of_the_lake_holder = None
+    game_session.game_result = None
+    game_session.good_wins = 0
+    game_session.evil_wins = 0
+    game_session.vote_history = []
+    game_session.game_log = []
+    
+    await db.game_sessions.replace_one({"id": request.session_id}, game_session.dict())
+    await broadcast_game_state(request.session_id)
+    
+    return {"message": "Game restarted successfully"}
 
 # Include the router in the main app
 app.include_router(api_router)
