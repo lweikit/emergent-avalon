@@ -997,39 +997,118 @@ function App() {
               )}
             </div>
 
-            {/* Right Panel - Players */}
-            <div className="bg-white rounded-xl shadow-2xl p-6">
-              <h2 className="text-xl font-bold mb-4 text-gray-800">👥 Players</h2>
-              
-              <div className="space-y-2">
-                {session.players.map((player) => (
-                  <div
-                    key={player.id}
-                    className={`p-3 rounded-lg border-2 ${
-                      player.id === playerId
-                        ? 'bg-blue-100 border-blue-300'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{player.name}</span>
-                      <div className="flex items-center space-x-1">
-                        {player.is_leader && (
-                          <span className="text-yellow-600 text-sm">👑</span>
-                        )}
-                        {player.lady_of_the_lake && (
-                          <span className="text-yellow-600 text-sm">🌟</span>
-                        )}
-                        {player.is_connected ? (
-                          <span className="text-green-600 text-sm">🟢</span>
-                        ) : (
-                          <span className="text-red-600 text-sm">🔴</span>
-                        )}
+            {/* Right Panel - Players and Game Info */}
+            <div className="space-y-6">
+              {/* Players */}
+              <div className="bg-white rounded-xl shadow-2xl p-6">
+                <h2 className="text-xl font-bold mb-4 text-gray-800">👥 Players</h2>
+                
+                <div className="space-y-2">
+                  {session.players.map((player) => (
+                    <div
+                      key={player.id}
+                      className={`p-3 rounded-lg border-2 ${
+                        player.id === playerId
+                          ? 'bg-blue-100 border-blue-300'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{player.name}</span>
+                        <div className="flex items-center space-x-1">
+                          {player.is_leader && (
+                            <span className="text-yellow-600 text-sm">👑</span>
+                          )}
+                          {player.lady_of_the_lake && (
+                            <span className="text-yellow-600 text-sm">🌟</span>
+                          )}
+                          {player.is_bot && (
+                            <span className="text-purple-600 text-sm">🤖</span>
+                          )}
+                          {player.is_connected ? (
+                            <span className="text-green-600 text-sm">🟢</span>
+                          ) : (
+                            <span className="text-red-600 text-sm">🔴</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+
+              {/* Game Controls */}
+              <div className="bg-white rounded-xl shadow-2xl p-6">
+                <h2 className="text-xl font-bold mb-4 text-gray-800">🎮 Game Controls</h2>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setShowVoteHistory(!showVoteHistory)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    {showVoteHistory ? 'Hide' : 'Show'} Vote History
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowGameLog(!showGameLog)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    {showGameLog ? 'Hide' : 'Show'} Game Log
+                  </button>
+                  
+                  {session.phase === 'game_end' && (
+                    <button
+                      onClick={restartGame}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    >
+                      🔄 Restart Game
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Vote History */}
+              {showVoteHistory && session.vote_history && session.vote_history.length > 0 && (
+                <div className="bg-white rounded-xl shadow-2xl p-6">
+                  <h2 className="text-xl font-bold mb-4 text-gray-800">📊 Vote History</h2>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {session.vote_history.map((vote, index) => (
+                      <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="font-semibold text-sm">
+                          Mission {vote.mission} Team Vote - {vote.result}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {vote.approve_count}/{vote.total_votes} approved
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-1 text-xs">
+                          {Object.entries(vote.votes).map(([playerName, playerVote]) => (
+                            <div key={playerName} className="flex justify-between">
+                              <span>{playerName}:</span>
+                              <span className={playerVote ? 'text-green-600' : 'text-red-600'}>
+                                {playerVote ? '✓' : '✗'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Game Log */}
+              {showGameLog && session.game_log && session.game_log.length > 0 && (
+                <div className="bg-white rounded-xl shadow-2xl p-6">
+                  <h2 className="text-xl font-bold mb-4 text-gray-800">📝 Game Log</h2>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {session.game_log.map((log, index) => (
+                      <div key={index} className="p-2 bg-gray-50 rounded text-sm">
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
