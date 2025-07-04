@@ -860,6 +860,9 @@ async def vote_team(request: VoteRequest):
     await db.game_sessions.replace_one({"id": request.session_id}, game_session.dict())
     await broadcast_game_state(request.session_id)
     
+    # Trigger bot actions after player vote
+    asyncio.create_task(process_bot_actions(request.session_id))
+    
     return {"message": "Vote recorded successfully"}
 
 @api_router.post("/vote-mission")
