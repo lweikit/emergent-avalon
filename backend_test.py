@@ -70,7 +70,6 @@ class AvalonAPITester:
         
         websocket = self.ws_connections[player_name]
         try:
-            websocket.sock.settimeout(timeout)
             message = await asyncio.wait_for(websocket.recv(), timeout=timeout)
             data = json.loads(message)
             self.game_states[player_name] = data
