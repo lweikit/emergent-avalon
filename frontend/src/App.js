@@ -87,9 +87,10 @@ function App() {
     ws.current = new WebSocket(wsUrl);
     
     ws.current.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('WebSocket connected successfully');
       setIsConnected(true);
       setError('');
+      setWsRetryCount(0);
     };
     
     ws.current.onmessage = (event) => {
@@ -99,7 +100,8 @@ function App() {
         if (data.type === 'game_state') {
           setGameState(data);
         } else if (data.type === 'ping') {
-          // Ignore ping messages
+          // Send pong back to keep connection alive
+          ws.current.send(JSON.stringify({type: 'pong'}));
         }
       } catch (e) {
         console.error('Error parsing WebSocket message:', e);
@@ -109,12 +111,17 @@ function App() {
     ws.current.onclose = (event) => {
       console.log('WebSocket closed:', event.code, event.reason);
       setIsConnected(false);
-      // Reconnect after 3 seconds if not intentionally closed
-      if (event.code !== 1000 && sessionId) {
+      
+      // Implement exponential backoff for reconnection
+      if (event.code !== 1000 && sessionId && wsRetryCount < 5) {
+        const delay = Math.min(1000 * Math.pow(2, wsRetryCount), 10000);
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${wsRetryCount + 1})`);
         setTimeout(() => {
-          console.log('Attempting to reconnect...');
+          setWsRetryCount(prev => prev + 1);
           connectWebSocket();
-        }, 3000);
+        }, delay);
+      } else if (wsRetryCount >= 5) {
+        setError('Failed to connect after multiple attempts. Please refresh the page.');
       }
     };
     
@@ -124,6 +131,35 @@ function App() {
       setIsConnected(false);
     };
   };
+
+  // Fallback method to get game state if WebSocket fails
+  const fetchGameState = async () => {
+    if (!sessionId) return;
+    
+    try {
+      const response = await axios.get(`${API}/session/${sessionId}`);
+      console.log('Fetched game state via API:', response.data);
+      
+      // Convert API response to match WebSocket format
+      const gameStateData = {
+        type: 'game_state',
+        session: response.data,
+        player_id: playerId
+      };
+      
+      setGameState(gameStateData);
+    } catch (error) {
+      console.error('Failed to fetch game state:', error);
+    }
+  };
+
+  // Poll for game state if WebSocket is not connected
+  useEffect(() => {
+    if (sessionId && !isConnected) {
+      const interval = setInterval(fetchGameState, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [sessionId, isConnected, playerId]);
 
   const createSession = async () => {
     try {
