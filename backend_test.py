@@ -619,6 +619,338 @@ async def test_websocket_vs_fallback():
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
     return 0 if tester.tests_passed == tester.tests_run else 1
 
+async def test_bot_ai_system():
+    """Test the bot AI system"""
+    tester = AvalonAPITester()
+    timestamp = datetime.now().strftime("%H%M%S")
+    session_name = f"Bot Test {timestamp}"
+    player_name = f"Human_{timestamp}"
+    
+    print("\n🤖 Testing Bot AI System")
+    
+    # Create session with one human player
+    if not tester.create_session(session_name, player_name):
+        return 1
+    
+    # Start a test game with bots
+    if not tester.start_test_game():
+        return 1
+    
+    # Get session to check if bots were added
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    # Check if bots were added
+    players = session_data.get('players', [])
+    bot_count = sum(1 for p in players if p.get('is_bot', False))
+    print(f"✅ {bot_count} bot players added to the game")
+    
+    # Connect to WebSocket to monitor bot actions
+    await tester.connect_websocket(tester.session_id, player_name)
+    
+    # Wait for bots to take actions
+    print("⏳ Waiting for bot actions...")
+    
+    # Monitor game state changes for 30 seconds
+    start_time = time.time()
+    phase_changes = []
+    last_phase = session_data.get('phase', '')
+    phase_changes.append(last_phase)
+    
+    while time.time() - start_time < 30:
+        # Get current game state
+        success, session_data = tester.get_session()
+        if success:
+            current_phase = session_data.get('phase', '')
+            if current_phase != last_phase:
+                print(f"🔄 Game phase changed: {last_phase} -> {current_phase}")
+                phase_changes.append(current_phase)
+                last_phase = current_phase
+                
+                # Check for mission results
+                if current_phase in ['mission_team_selection', 'game_end']:
+                    missions = session_data.get('missions', [])
+                    completed_missions = [m for m in missions if m.get('result') != 'pending']
+                    for mission in completed_missions:
+                        print(f"🎯 Mission {mission.get('number')}: {mission.get('result')}")
+        
+        # Wait a bit before checking again
+        await asyncio.sleep(2)
+    
+    # Check if game progressed automatically
+    if len(phase_changes) > 1:
+        print(f"✅ Game progressed automatically through phases: {' -> '.join(phase_changes)}")
+        
+        # Check vote history for bot votes
+        success, session_data = tester.get_session()
+        if success:
+            vote_history = session_data.get('vote_history', [])
+            if vote_history:
+                print(f"✅ Vote history recorded {len(vote_history)} voting rounds")
+                for i, vote_record in enumerate(vote_history):
+                    print(f"  Round {i+1}: {vote_record.get('approve_count')}/{vote_record.get('total_votes')} approved")
+            else:
+                print("❌ No vote history recorded")
+    else:
+        print("❌ Game did not progress automatically")
+    
+    # Close WebSocket connection
+    await tester.close_websockets()
+    
+    # Print test results
+    print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+    return 0 if tester.tests_passed == tester.tests_run and len(phase_changes) > 1 else 1
+
+async def test_vote_transparency():
+    """Test vote transparency features"""
+    tester = AvalonAPITester()
+    timestamp = datetime.now().strftime("%H%M%S")
+    session_name = f"Vote Test {timestamp}"
+    
+    # Create players with unique names
+    players = [f"Player{i}_{timestamp}" for i in range(1, 6)]
+    
+    print("\n📊 Testing Vote Transparency")
+    
+    # Create session and join players
+    if not tester.create_session(session_name, players[0]):
+        return 1
+    
+    # Join other players
+    for player in players[1:]:
+        if not tester.join_session(player):
+            return 1
+    
+    # Start the game
+    if not tester.start_game():
+        return 1
+    
+    # Get the current leader
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    # Find the leader
+    leader_index = None
+    for i, player in enumerate(session_data.get('players', [])):
+        if player.get('is_leader', False):
+            leader_index = i
+            break
+    
+    if leader_index is None:
+        print("❌ No leader found")
+        return 1
+    
+    leader_name = players[leader_index % len(players)]
+    print(f"Current leader: {leader_name}")
+    
+    # Select team for first mission
+    team_size = session_data.get('missions', [])[0].get('team_size', 2)
+    team_members = players[:team_size]
+    if not tester.select_team(leader_name, team_members):
+        return 1
+    
+    # Have players vote with different choices
+    for i, player in enumerate(players):
+        # Alternate approve/reject votes
+        vote = i % 2 == 0
+        if not tester.vote_team(player, vote):
+            return 1
+    
+    # Wait for votes to process
+    time.sleep(2)
+    
+    # Check vote history
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    vote_history = session_data.get('vote_history', [])
+    if not vote_history:
+        print("❌ No vote history recorded")
+        return 1
+    
+    # Verify vote details are recorded
+    latest_vote = vote_history[-1]
+    if 'votes' not in latest_vote:
+        print("❌ Individual votes not recorded in vote history")
+        return 1
+    
+    print("✅ Vote history recorded individual votes:")
+    for player_name, vote in latest_vote.get('votes', {}).items():
+        print(f"  {player_name}: {'Approve' if vote else 'Reject'}")
+    
+    # Check game log
+    game_log = session_data.get('game_log', [])
+    if not game_log:
+        print("❌ No game log entries recorded")
+        return 1
+    
+    print("✅ Game log entries:")
+    for log_entry in game_log:
+        print(f"  {log_entry}")
+    
+    # Print test results
+    print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+    return 0 if tester.tests_passed == tester.tests_run and vote_history and game_log else 1
+
+async def test_lady_of_lake_toggle():
+    """Test Lady of the Lake toggle feature"""
+    tester = AvalonAPITester()
+    timestamp = datetime.now().strftime("%H%M%S")
+    session_name = f"Lady Test {timestamp}"
+    
+    # Create players with unique names (7 players to trigger Lady of the Lake)
+    players = [f"Player{i}_{timestamp}" for i in range(1, 8)]
+    
+    print("\n🌟 Testing Lady of the Lake Toggle")
+    
+    # Create session and join players
+    if not tester.create_session(session_name, players[0]):
+        return 1
+    
+    # Join other players
+    for player in players[1:]:
+        if not tester.join_session(player):
+            return 1
+    
+    # Check default Lady of the Lake setting
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    default_setting = session_data.get('lady_of_the_lake_enabled', None)
+    print(f"Default Lady of the Lake setting: {default_setting}")
+    
+    # Toggle Lady of the Lake off
+    if not tester.toggle_lady_of_lake(False):
+        return 1
+    
+    # Verify setting was changed
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    if session_data.get('lady_of_the_lake_enabled', True) != False:
+        print("❌ Failed to disable Lady of the Lake")
+        return 1
+    
+    print("✅ Successfully disabled Lady of the Lake")
+    
+    # Toggle Lady of the Lake back on
+    if not tester.toggle_lady_of_lake(True):
+        return 1
+    
+    # Verify setting was changed back
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    if session_data.get('lady_of_the_lake_enabled', False) != True:
+        print("❌ Failed to enable Lady of the Lake")
+        return 1
+    
+    print("✅ Successfully enabled Lady of the Lake")
+    
+    # Start game with Lady of the Lake enabled
+    if not tester.start_game():
+        return 1
+    
+    # Verify Lady of the Lake holder is set
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    lady_holder = session_data.get('lady_of_the_lake_holder', None)
+    if not lady_holder:
+        print("❌ Lady of the Lake holder not set")
+        return 1
+    
+    print(f"✅ Lady of the Lake holder set: {lady_holder}")
+    
+    # Print test results
+    print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+    return 0 if tester.tests_passed == tester.tests_run else 1
+
+async def test_game_restart():
+    """Test game restart feature"""
+    tester = AvalonAPITester()
+    timestamp = datetime.now().strftime("%H%M%S")
+    session_name = f"Restart Test {timestamp}"
+    
+    # Create players with unique names
+    players = [f"Player{i}_{timestamp}" for i in range(1, 6)]
+    
+    print("\n🔄 Testing Game Restart")
+    
+    # Create session and join players
+    if not tester.create_session(session_name, players[0]):
+        return 1
+    
+    # Join other players
+    for player in players[1:]:
+        if not tester.join_session(player):
+            return 1
+    
+    # Record initial player IDs
+    success, initial_session = tester.get_session()
+    if not success:
+        return 1
+    
+    initial_player_ids = [p.get('id') for p in initial_session.get('players', [])]
+    print(f"Initial players: {len(initial_player_ids)}")
+    
+    # Start the game
+    if not tester.start_game():
+        return 1
+    
+    # Verify game started
+    success, started_session = tester.get_session()
+    if not success:
+        return 1
+    
+    if started_session.get('phase') == 'lobby':
+        print("❌ Game failed to start")
+        return 1
+    
+    print(f"✅ Game started, phase: {started_session.get('phase')}")
+    
+    # Restart the game
+    if not tester.restart_game():
+        return 1
+    
+    # Verify game was reset
+    success, restarted_session = tester.get_session()
+    if not success:
+        return 1
+    
+    # Check phase is back to lobby
+    if restarted_session.get('phase') != 'lobby':
+        print(f"❌ Game not reset to lobby phase: {restarted_session.get('phase')}")
+        return 1
+    
+    print("✅ Game reset to lobby phase")
+    
+    # Check players are the same
+    restarted_player_ids = [p.get('id') for p in restarted_session.get('players', [])]
+    if set(initial_player_ids) != set(restarted_player_ids):
+        print("❌ Player list changed after restart")
+        return 1
+    
+    print(f"✅ Same {len(restarted_player_ids)} players preserved after restart")
+    
+    # Check roles were reset
+    if any(p.get('role') for p in restarted_session.get('players', [])):
+        print("❌ Roles not reset after restart")
+        return 1
+    
+    print("✅ Player roles reset successfully")
+    
+    # Print test results
+    print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+    return 0 if tester.tests_passed == tester.tests_run else 1
+
 def main():
     # Run the tests
     print("🧪 Running Avalon API Tests")
