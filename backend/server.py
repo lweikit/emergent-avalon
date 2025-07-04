@@ -695,6 +695,36 @@ async def get_session(session_id: str):
     
     return GameSession(**session)
 
+@api_router.get("/debug/session/{session_id}")
+async def debug_session(session_id: str):
+    """Debug session details with role information"""
+    session = await db.game_sessions.find_one({"id": session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    game_session = GameSession(**session)
+    
+    debug_info = {
+        "session_id": session_id,
+        "phase": game_session.phase,
+        "players": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "role": p.role,
+                "is_leader": p.is_leader,
+                "is_connected": p.is_connected
+            } for p in game_session.players
+        ],
+        "role_distribution": {
+            "total_players": len(game_session.players),
+            "expected_roles": ROLE_CONFIGS.get(len(game_session.players), []),
+            "actual_roles": [p.role for p in game_session.players if p.role]
+        }
+    }
+    
+    return debug_info
+
 # Include the router in the main app
 app.include_router(api_router)
 
