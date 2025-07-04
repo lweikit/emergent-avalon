@@ -815,6 +815,9 @@ async def select_team(request: TeamSelectionRequest):
     await db.game_sessions.replace_one({"id": request.session_id}, game_session.dict())
     await broadcast_game_state(request.session_id)
     
+    # Trigger bot actions after team selection
+    asyncio.create_task(process_bot_actions(request.session_id))
+    
     return {"message": "Team selected successfully"}
 
 @api_router.post("/vote-team")
