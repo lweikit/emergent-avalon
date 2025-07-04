@@ -242,19 +242,53 @@ class AvalonAPITester:
             print(f"🗡️ Assassination {result}")
         return success
 
-    def get_session(self):
-        """Get session details"""
+    def toggle_lady_of_lake(self, enabled):
+        """Toggle Lady of the Lake expansion on/off"""
         if not self.session_id:
             print("❌ No active session")
-            return False, None
+            return False
         
-        success, response = self.run_test(
-            "Get Session",
-            "GET",
-            f"session/{self.session_id}",
-            200
+        success, _ = self.run_test(
+            f"Toggle Lady of the Lake ({enabled})",
+            "POST",
+            "toggle-lady-of-lake",
+            200,
+            data={
+                "session_id": self.session_id,
+                "enabled": enabled
+            }
         )
-        return success, response
+        return success
+        
+    def restart_game(self):
+        """Restart the game with the same players"""
+        if not self.session_id:
+            print("❌ No active session")
+            return False
+        
+        success, _ = self.run_test(
+            "Restart Game",
+            "POST",
+            "restart-game",
+            200,
+            data={"session_id": self.session_id}
+        )
+        return success
+        
+    def start_test_game(self):
+        """Start a test game with bot players"""
+        if not self.session_id:
+            print("❌ No active session")
+            return False
+        
+        success, _ = self.run_test(
+            "Start Test Game",
+            "POST",
+            "start-test-game",
+            200,
+            data={"session_id": self.session_id}
+        )
+        return success
 
 async def test_basic_game_flow():
     """Test a basic game flow with 5 players"""
