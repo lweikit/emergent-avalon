@@ -440,6 +440,38 @@ async def start_game(request: StartGameRequest):
     
     return {"message": "Game started successfully"}
 
+# Add a test mode endpoint for easier testing
+@api_router.post("/start-test-game")
+async def start_test_game(request: StartGameRequest):
+    """Start a test game with relaxed player requirements"""
+    session = await db.game_sessions.find_one({"id": request.session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    game_session = GameSession(**session)
+    
+    # Add bot players if needed for testing
+    while len(game_session.players) < 5:
+        bot_name = f"Bot{len(game_session.players)}"
+        bot_player = Player(name=bot_name, is_connected=False)
+        game_session.players.append(bot_player)
+    
+    # Assign roles and initialize missions
+    game_session.players = assign_roles(game_session.players)
+    game_session.missions = initialize_missions(len(game_session.players))
+    game_session.phase = GamePhase.MISSION_TEAM_SELECTION
+    game_session.players[0].is_leader = True
+    
+    # Set initial Lady of the Lake holder (if using expansion)
+    if len(game_session.players) >= 7:
+        game_session.lady_of_the_lake_holder = game_session.players[0].id
+        game_session.players[0].lady_of_the_lake = True
+    
+    await db.game_sessions.replace_one({"id": request.session_id}, game_session.dict())
+    await broadcast_game_state(request.session_id)
+    
+    return {"message": "Test game started successfully with bot players"}
+
 @api_router.post("/select-team")
 async def select_team(request: TeamSelectionRequest):
     """Select team for current mission"""
