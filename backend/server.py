@@ -36,6 +36,16 @@ app.add_middleware(
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
+api_router = APIRouter(prefix="/api")
+
+@api_router.get("/")
+async def root():
+    return {"message": "Avalon Game API is running", "status": "healthy"}
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.utcnow()}
+
 
 # WebSocket connection manager
 class ConnectionManager:
