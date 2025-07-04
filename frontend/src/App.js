@@ -82,7 +82,7 @@ function App() {
       ws.current.close();
     }
     
-    const wsUrl = `${WS_URL}/api/ws/${sessionId}`;
+    const wsUrl = `${WS_URL}/api/ws/${sessionId}?player_id=${playerId}`;
     console.log('Connecting to WebSocket:', wsUrl);
     
     ws.current = new WebSocket(wsUrl);
@@ -92,6 +92,14 @@ function App() {
       setIsConnected(true);
       setError('');
       setWsRetryCount(0);
+      
+      // Send player identification
+      if (playerId) {
+        ws.current.send(JSON.stringify({
+          type: 'identify',
+          player_id: playerId
+        }));
+      }
     };
     
     ws.current.onmessage = (event) => {
@@ -100,6 +108,7 @@ function App() {
         console.log('Received WebSocket message:', data);
         if (data.type === 'game_state') {
           setGameState(data);
+          setLastUpdate(Date.now());
         } else if (data.type === 'ping') {
           // Send pong back to keep connection alive
           if (ws.current.readyState === WebSocket.OPEN) {
