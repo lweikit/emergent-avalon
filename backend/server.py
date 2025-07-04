@@ -49,26 +49,47 @@ async def health_check():
 # WebSocket connection manager
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.active_connections: Dict[str, Dict[str, WebSocket]] = {}  # session_id -> player_id -> websocket
     
-    async def connect(self, websocket: WebSocket, session_id: str):
+    async def connect(self, websocket: WebSocket, session_id: str, player_id: str = None):
         await websocket.accept()
         if session_id not in self.active_connections:
-            self.active_connections[session_id] = []
-        self.active_connections[session_id].append(websocket)
+            self.active_connections[session_id] = {}
+        
+        # Use a temporary ID if player_id is not provided
+        connection_id = player_id or str(uuid.uuid4())
+        self.active_connections[session_id][connection_id] = websocket
+        print(f"WebSocket connected for session {session_id}, player {connection_id}")
     
-    def disconnect(self, websocket: WebSocket, session_id: str):
+    def disconnect(self, websocket: WebSocket, session_id: str, player_id: str = None):
         if session_id in self.active_connections:
-            self.active_connections[session_id].remove(websocket)
+            # Find and remove the websocket
+            to_remove = None
+            for pid, ws in self.active_connections[session_id].items():
+                if ws == websocket:
+                    to_remove = pid
+                    break
+            
+            if to_remove:
+                del self.active_connections[session_id][to_remove]
+                print(f"WebSocket disconnected for session {session_id}, player {to_remove}")
+                
             if not self.active_connections[session_id]:
                 del self.active_connections[session_id]
     
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
     
+    async def send_to_player(self, message: str, session_id: str, player_id: str):
+        if session_id in self.active_connections and player_id in self.active_connections[session_id]:
+            try:
+                await self.active_connections[session_id][player_id].send_text(message)
+            except:
+                pass
+    
     async def broadcast_to_session(self, message: str, session_id: str):
         if session_id in self.active_connections:
-            for connection in self.active_connections[session_id]:
+            for player_id, connection in self.active_connections[session_id].items():
                 try:
                     await connection.send_text(message)
                 except:
