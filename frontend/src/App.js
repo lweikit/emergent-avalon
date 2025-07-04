@@ -285,7 +285,20 @@ function App() {
       // Fetch updated game state
       setTimeout(fetchGameState, 500);
     } catch (error) {
-      setError('Failed to start game');
+      setError('Failed to start game: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  const startTestGame = async () => {
+    try {
+      await axios.post(`${API}/start-test-game`, {
+        session_id: sessionId
+      });
+      setError('');
+      // Fetch updated game state
+      setTimeout(fetchGameState, 500);
+    } catch (error) {
+      setError('Failed to start test game: ' + (error.response?.data?.detail || error.message));
     }
   };
 
