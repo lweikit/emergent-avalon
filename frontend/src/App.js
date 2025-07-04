@@ -372,6 +372,21 @@ function App() {
     }
   };
 
+  const assassinate = async () => {
+    try {
+      await axios.post(`${API}/assassinate`, {
+        session_id: sessionId,
+        player_id: playerId,
+        target_player_id: assassinTarget
+      });
+      setAssassinTarget('');
+      setError('');
+      setTimeout(fetchGameState, 500);
+    } catch (error) {
+      setError('Failed to assassinate');
+    }
+  };
+
   const toggleLadyOfLake = async (enabled) => {
     try {
       await axios.post(`${API}/toggle-lady-of-lake`, {
