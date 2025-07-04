@@ -207,6 +207,8 @@ function App() {
         session_id: sessionId
       });
       setError('');
+      // Fetch updated game state
+      setTimeout(fetchGameState, 500);
     } catch (error) {
       setError('Failed to start game');
     }
@@ -221,6 +223,7 @@ function App() {
       });
       setSelectedTeam([]);
       setError('');
+      setTimeout(fetchGameState, 500);
     } catch (error) {
       setError('Failed to select team');
     }
@@ -234,6 +237,7 @@ function App() {
         vote: vote
       });
       setError('');
+      setTimeout(fetchGameState, 500);
     } catch (error) {
       setError('Failed to vote');
     }
@@ -247,6 +251,7 @@ function App() {
         vote: vote
       });
       setError('');
+      setTimeout(fetchGameState, 500);
     } catch (error) {
       setError('Failed to vote on mission');
     }
@@ -262,6 +267,7 @@ function App() {
       setLadyResult(response.data);
       setLadyTarget('');
       setError('');
+      setTimeout(fetchGameState, 500);
     } catch (error) {
       setError('Failed to use Lady of the Lake');
     }
@@ -276,6 +282,7 @@ function App() {
       });
       setAssassinTarget('');
       setError('');
+      setTimeout(fetchGameState, 500);
     } catch (error) {
       setError('Failed to assassinate');
     }
