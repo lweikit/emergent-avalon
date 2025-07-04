@@ -368,8 +368,12 @@ async def broadcast_game_state(session_id: str):
                     pass
 
 @app.websocket("/api/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    await manager.connect(websocket, session_id)
+async def websocket_endpoint(websocket: WebSocket, session_id: str, player_id: str = None):
+    # Try to get player_id from query parameters
+    query_params = dict(websocket.query_params)
+    player_id = query_params.get('player_id', player_id)
+    
+    await manager.connect(websocket, session_id, player_id)
     try:
         # Send initial game state immediately
         await broadcast_game_state(session_id)
@@ -383,6 +387,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 if message.get('type') == 'pong':
                     # Client responded to ping, connection is healthy
                     continue
+                elif message.get('type') == 'identify' and message.get('player_id'):
+                    # Update player identification
+                    player_id = message.get('player_id')
+                    print(f"Player identified as {player_id} in session {session_id}")
             except asyncio.TimeoutError:
                 # Send periodic ping to keep connection alive
                 await websocket.send_text(json.dumps({"type": "ping"}))
@@ -392,11 +400,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 print(f"WebSocket message error: {e}")
                 break
     except WebSocketDisconnect:
-        manager.disconnect(websocket, session_id)
+        manager.disconnect(websocket, session_id, player_id)
         print(f"WebSocket disconnected from session {session_id}")
     except Exception as e:
         print(f"WebSocket error: {e}")
-        manager.disconnect(websocket, session_id)
+        manager.disconnect(websocket, session_id, player_id)
 
 @api_router.post("/create-session")
 async def create_session(request: CreateSessionRequest):
