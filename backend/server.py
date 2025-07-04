@@ -336,23 +336,29 @@ async def broadcast_game_state(session_id: str):
         
         await manager.broadcast_to_session(json.dumps(player_state), session_id)
 
-@app.websocket("/ws/{session_id}")
+@app.websocket("/api/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await manager.connect(websocket, session_id)
     try:
-        # Send initial game state
+        # Send initial game state immediately
         await broadcast_game_state(session_id)
         
         while True:
             # Keep connection alive and handle any client messages
             try:
-                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 # Handle any WebSocket messages from client if needed
-                await manager.send_personal_message(f"Message received: {data}", websocket)
+                message = json.loads(data)
+                if message.get('type') == 'pong':
+                    # Client responded to ping, connection is healthy
+                    continue
             except asyncio.TimeoutError:
                 # Send periodic ping to keep connection alive
                 await websocket.send_text(json.dumps({"type": "ping"}))
             except WebSocketDisconnect:
+                break
+            except Exception as e:
+                print(f"WebSocket message error: {e}")
                 break
     except WebSocketDisconnect:
         manager.disconnect(websocket, session_id)
