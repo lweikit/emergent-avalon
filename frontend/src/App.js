@@ -2,7 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import axios from 'axios';
 
-const BACKEND_URL = import.meta.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
+// Environment variable access compatible with React 19 and craco
+const getBackendUrl = () => {
+  // Try different methods to access environment variables
+  if (typeof window !== 'undefined' && window.process && window.process.env) {
+    return window.process.env.REACT_APP_BACKEND_URL;
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.REACT_APP_BACKEND_URL;
+  }
+  // Fallback - this will be replaced during build
+  return 'https://6dea0238-f0e0-412c-a0be-b01fdaec96fe.preview.emergentagent.com';
+};
+
+const BACKEND_URL = getBackendUrl();
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
