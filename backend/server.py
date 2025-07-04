@@ -559,7 +559,10 @@ async def broadcast_game_state(session_id: str):
                         "mission_votes": m.mission_votes if len(m.mission_votes) == len(m.team_members) else {}
                     } for m in game_session.missions
                 ],
-                "lady_of_the_lake_holder": game_session.lady_of_the_lake_holder
+                "lady_of_the_lake_holder": game_session.lady_of_the_lake_holder,
+                "lady_of_the_lake_enabled": game_session.lady_of_the_lake_enabled,
+                "vote_history": game_session.vote_history,
+                "game_log": game_session.game_log
             },
             "player_id": player.id
         }
