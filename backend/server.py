@@ -424,8 +424,15 @@ async def start_game(request: StartGameRequest):
     if len(game_session.players) < 5:
         raise HTTPException(status_code=400, detail="Need at least 5 players to start")
     
-    # Assign roles and initialize missions
-    game_session.players = assign_roles(game_session.players)
+    # Check if game has already started (prevent role reassignment)
+    if game_session.phase != GamePhase.LOBBY:
+        raise HTTPException(status_code=400, detail="Game has already started")
+    
+    # Assign roles and initialize missions ONLY if not already assigned
+    if not any(player.role for player in game_session.players):
+        game_session.players = assign_roles(game_session.players)
+        print(f"Assigned roles: {[(p.name, p.role) for p in game_session.players]}")
+    
     game_session.missions = initialize_missions(len(game_session.players))
     game_session.phase = GamePhase.MISSION_TEAM_SELECTION
     game_session.players[0].is_leader = True
@@ -450,14 +457,21 @@ async def start_test_game(request: StartGameRequest):
     
     game_session = GameSession(**session)
     
+    # Check if game has already started (prevent role reassignment)
+    if game_session.phase != GamePhase.LOBBY:
+        raise HTTPException(status_code=400, detail="Game has already started")
+    
     # Add bot players if needed for testing
     while len(game_session.players) < 5:
         bot_name = f"Bot{len(game_session.players)}"
         bot_player = Player(name=bot_name, is_connected=False)
         game_session.players.append(bot_player)
     
-    # Assign roles and initialize missions
-    game_session.players = assign_roles(game_session.players)
+    # Assign roles and initialize missions ONLY if not already assigned
+    if not any(player.role for player in game_session.players):
+        game_session.players = assign_roles(game_session.players)
+        print(f"Assigned roles: {[(p.name, p.role) for p in game_session.players]}")
+    
     game_session.missions = initialize_missions(len(game_session.players))
     game_session.phase = GamePhase.MISSION_TEAM_SELECTION
     game_session.players[0].is_leader = True
