@@ -81,7 +81,7 @@ function App() {
       ws.current.close();
     }
     
-    const wsUrl = `${WS_URL}/ws/${sessionId}`;
+    const wsUrl = `${WS_URL}/api/ws/${sessionId}`;
     console.log('Connecting to WebSocket:', wsUrl);
     
     ws.current = new WebSocket(wsUrl);
@@ -101,7 +101,9 @@ function App() {
           setGameState(data);
         } else if (data.type === 'ping') {
           // Send pong back to keep connection alive
-          ws.current.send(JSON.stringify({type: 'pong'}));
+          if (ws.current.readyState === WebSocket.OPEN) {
+            ws.current.send(JSON.stringify({type: 'pong'}));
+          }
         }
       } catch (e) {
         console.error('Error parsing WebSocket message:', e);
@@ -121,13 +123,15 @@ function App() {
           connectWebSocket();
         }, delay);
       } else if (wsRetryCount >= 5) {
-        setError('Failed to connect after multiple attempts. Please refresh the page.');
+        setError('Failed to connect after multiple attempts. Using offline mode.');
+        // Force fallback mode
+        fetchGameState();
       }
     };
     
     ws.current.onerror = (error) => {
       console.error('WebSocket error:', error);
-      setError('Connection error. Trying to reconnect...');
+      setError('Connection error. Using offline mode...');
       setIsConnected(false);
     };
   };
