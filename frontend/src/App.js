@@ -50,6 +50,8 @@ function App() {
   const [ladyTarget, setLadyTarget] = useState('');
   const [assassinTarget, setAssassinTarget] = useState('');
   const [ladyResult, setLadyResult] = useState(null);
+  const [showVoteHistory, setShowVoteHistory] = useState(false);
+  const [showGameLog, setShowGameLog] = useState(false);
   const [error, setError] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [wsRetryCount, setWsRetryCount] = useState(0);
