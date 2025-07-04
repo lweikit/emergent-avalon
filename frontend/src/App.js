@@ -485,16 +485,36 @@ function App() {
 
             <div className="mt-8 text-center">
               {canStart ? (
-                <button
-                  onClick={startGame}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors"
-                >
-                  🚀 Start Game
-                </button>
+                <div className="space-y-4">
+                  <button
+                    onClick={startGame}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors mr-4"
+                  >
+                    🚀 Start Game
+                  </button>
+                  <div>
+                    <button
+                      onClick={startTestGame}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                    >
+                      🧪 Start Test Game (adds bots)
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1">Test mode adds bot players for testing</p>
+                  </div>
+                </div>
               ) : (
-                <div className="text-gray-600">
-                  <p>Need at least 5 players to start</p>
-                  <p>({5 - players.length} more needed)</p>
+                <div className="space-y-4">
+                  <div className="text-gray-600">
+                    <p>Need at least 5 players to start</p>
+                    <p>({5 - players.length} more needed)</p>
+                  </div>
+                  <button
+                    onClick={startTestGame}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                  >
+                    🧪 Start Test Game (adds bots)
+                  </button>
+                  <p className="text-xs text-gray-500">Test mode adds bot players so you can try the game</p>
                 </div>
               )}
             </div>
