@@ -993,6 +993,12 @@ function App() {
           </div>
         )}
 
+        {!isConnected && gameState && (
+          <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg text-sm">
+            ⚠️ Using offline mode - click refresh button or wait for auto-update (last update: {new Date(lastUpdate).toLocaleTimeString()})
+          </div>
+        )}
+
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
