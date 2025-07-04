@@ -53,6 +53,7 @@ function App() {
   const [error, setError] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [wsRetryCount, setWsRetryCount] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
   const ws = useRef(null);
 
   // Debug logging
