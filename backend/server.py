@@ -543,6 +543,7 @@ async def broadcast_game_state(session_id: str):
                         "is_leader": p.is_leader,
                         "is_connected": p.is_connected,
                         "lady_of_the_lake": p.lady_of_the_lake,
+                        "is_bot": p.is_bot,
                         "role": p.role if game_session.phase != GamePhase.LOBBY else None
                     } for p in game_session.players
                 ],
