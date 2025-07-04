@@ -740,12 +740,16 @@ async def start_game(request: StartGameRequest):
     game_session.players[0].is_leader = True
     
     # Set initial Lady of the Lake holder (if using expansion)
-    if len(game_session.players) >= 7:
+    if len(game_session.players) >= 7 and game_session.lady_of_the_lake_enabled:
         game_session.lady_of_the_lake_holder = game_session.players[0].id
         game_session.players[0].lady_of_the_lake = True
     
     await db.game_sessions.replace_one({"id": request.session_id}, game_session.dict())
     await broadcast_game_state(request.session_id)
+    
+    # Start bot processing after a short delay
+    asyncio.create_task(asyncio.sleep(1))
+    asyncio.create_task(process_bot_actions(request.session_id))
     
     return {"message": "Game started successfully"}
 
