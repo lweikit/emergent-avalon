@@ -160,7 +160,9 @@ function App() {
   // Poll for game state if WebSocket is not connected
   useEffect(() => {
     if (sessionId && !isConnected) {
-      const interval = setInterval(fetchGameState, 3000);
+      // Start immediate polling when WebSocket fails
+      fetchGameState();
+      const interval = setInterval(fetchGameState, 2000); // Poll every 2 seconds
       return () => clearInterval(interval);
     }
   }, [sessionId, isConnected, playerId]);
