@@ -20,6 +20,7 @@ class AvalonAPITester:
         self.ws_connections = {}
         self.game_states = {}
         self.bot_players = []
+        self.bot_players = []
 
     def run_test(self, name, method, endpoint, expected_status, data=None):
         """Run a single API test"""
