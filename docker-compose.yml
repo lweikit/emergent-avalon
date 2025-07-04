@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: avalon-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: avalon_game
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - avalon-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: avalon-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      MONGO_URL: mongodb://admin:password123@mongodb:27017/avalon_game?authSource=admin
+      DB_NAME: avalon_game
+    depends_on:
+      - mongodb
+    networks:
+      - avalon-network
+    volumes:
+      - ./backend:/app/backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: avalon-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_BACKEND_URL: http://localhost:8001
+    depends_on:
+      - backend
+    networks:
+      - avalon-network
+    volumes:
+      - ./frontend:/app/frontend
+
+volumes:
+  mongodb_data:
+
+networks:
+  avalon-network:
+    driver: bridge
