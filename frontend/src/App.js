@@ -172,7 +172,9 @@ function App() {
       console.log('Session created:', response.data);
       setSessionId(response.data.session_id);
       setPlayerId(response.data.player_id);
-      setError('');
+      
+      // Fetch initial game state if WebSocket doesn't work
+      setTimeout(fetchGameState, 1000);
     } catch (error) {
       console.error('Failed to create session:', error);
       setError('Failed to create session: ' + (error.response?.data?.detail || error.message));
@@ -190,7 +192,9 @@ function App() {
       console.log('Joined session:', response.data);
       setSessionId(sessionIdInput);
       setPlayerId(response.data.player_id);
-      setError('');
+      
+      // Fetch initial game state if WebSocket doesn't work
+      setTimeout(fetchGameState, 1000);
     } catch (error) {
       console.error('Failed to join session:', error);
       setError('Failed to join session: ' + (error.response?.data?.detail || error.message));
