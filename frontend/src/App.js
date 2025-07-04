@@ -512,10 +512,18 @@ function App() {
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                   <span className="text-sm text-gray-600">
-                    {isConnected ? 'Connected' : 'Offline Mode'}
+                    {isConnected ? 'Real-time' : 'Offline Mode'}
                   </span>
+                  {!isConnected && (
+                    <button
+                      onClick={fetchGameState}
+                      className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+                    >
+                      Refresh
+                    </button>
+                  )}
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Good Wins</p>
