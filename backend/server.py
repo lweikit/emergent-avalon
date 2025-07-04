@@ -197,6 +197,13 @@ class AssassinationRequest(BaseModel):
     player_id: str
     target_player_id: str
 
+class ToggleLadyOfLakeRequest(BaseModel):
+    session_id: str
+    enabled: bool
+
+class RestartGameRequest(BaseModel):
+    session_id: str
+
 # Role configurations for different player counts
 ROLE_CONFIGS = {
     5: [Role.MERLIN, Role.PERCIVAL, Role.LOYAL_SERVANT, Role.MORGANA, Role.ASSASSIN],
