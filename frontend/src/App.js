@@ -142,6 +142,7 @@ function App() {
     if (!sessionId) return;
     
     try {
+      console.log('Fetching game state via API...');
       const response = await axios.get(`${API}/session/${sessionId}`);
       console.log('Fetched game state via API:', response.data);
       
@@ -152,10 +153,77 @@ function App() {
         player_id: playerId
       };
       
+      // Add role info for current player
+      if (response.data.phase !== 'lobby' && response.data.players) {
+        const currentPlayer = response.data.players.find(p => p.id === playerId);
+        if (currentPlayer && currentPlayer.role) {
+          gameStateData.role_info = getRoleInfoFromSession(currentPlayer.role, response.data.players);
+        }
+      }
+      
+      // Add current mission details
+      if (response.data.current_mission < response.data.missions.length) {
+        gameStateData.current_mission_details = response.data.missions[response.data.current_mission];
+      }
+      
       setGameState(gameStateData);
+      setLastUpdate(Date.now());
+      setError('');
     } catch (error) {
       console.error('Failed to fetch game state:', error);
+      setError('Failed to fetch game state: ' + (error.response?.data?.detail || error.message));
     }
+  };
+
+  // Helper function to get role info from session data
+  const getRoleInfoFromSession = (playerRole, allPlayers) => {
+    const info = {
+      role: playerRole,
+      team: ['merlin', 'percival', 'loyal_servant'].includes(playerRole) ? 'good' : 'evil',
+      description: '',
+      sees: []
+    };
+    
+    // Add role-specific information (simplified version)
+    switch (playerRole) {
+      case 'merlin':
+        info.description = 'You can see all evil players except Mordred';
+        info.sees = allPlayers.filter(p => ['morgana', 'assassin', 'oberon', 'minion'].includes(p.role))
+          .map(p => ({id: p.id, name: p.name, role: 'evil'}));
+        break;
+      case 'percival':
+        info.description = 'You can see Merlin and Morgana, but don\'t know which is which';
+        info.sees = allPlayers.filter(p => ['merlin', 'morgana'].includes(p.role))
+          .map(p => ({id: p.id, name: p.name, role: 'merlin_or_morgana'}));
+        break;
+      case 'morgana':
+        info.description = 'You are evil and can see other evil players (except Oberon)';
+        info.sees = allPlayers.filter(p => ['assassin', 'mordred', 'minion'].includes(p.role))
+          .map(p => ({id: p.id, name: p.name, role: 'evil'}));
+        break;
+      case 'assassin':
+        info.description = 'You are evil and can see other evil players (except Oberon). You can assassinate Merlin if good wins';
+        info.sees = allPlayers.filter(p => ['morgana', 'mordred', 'minion'].includes(p.role))
+          .map(p => ({id: p.id, name: p.name, role: 'evil'}));
+        break;
+      case 'mordred':
+        info.description = 'You are evil and can see other evil players (except Oberon). You are hidden from Merlin';
+        info.sees = allPlayers.filter(p => ['morgana', 'assassin', 'minion'].includes(p.role))
+          .map(p => ({id: p.id, name: p.name, role: 'evil'}));
+        break;
+      case 'minion':
+        info.description = 'You are evil and can see other evil players (except Oberon)';
+        info.sees = allPlayers.filter(p => ['morgana', 'assassin', 'mordred'].includes(p.role))
+          .map(p => ({id: p.id, name: p.name, role: 'evil'}));
+        break;
+      case 'oberon':
+        info.description = 'You are evil but hidden from other evil players and Merlin';
+        break;
+      default:
+        info.description = 'You are a loyal servant of Arthur. Trust in Merlin\'s guidance';
+    }
+    
+    return info;
   };
 
   // Poll for game state if WebSocket is not connected
