@@ -36,7 +36,6 @@ app.add_middleware(
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
-api_router = APIRouter(prefix="/api")
 
 @api_router.get("/")
 async def root():
