@@ -50,7 +50,7 @@ class AvalonAPITester:
 
     async def connect_websocket(self, session_id, player_name):
         """Connect to WebSocket for real-time updates"""
-        ws_endpoint = f"{self.ws_url}/ws/{session_id}"
+        ws_endpoint = f"{self.ws_url}/api/ws/{session_id}"
         try:
             websocket = await websockets.connect(ws_endpoint)
             self.ws_connections[player_name] = websocket
