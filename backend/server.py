@@ -238,6 +238,217 @@ def assign_roles(players: List[Player]) -> List[Player]:
     
     return players
 
+# Bot AI Functions
+async def bot_select_team(game_session: GameSession, bot_player: Player) -> List[str]:
+    """Bot logic for selecting team members"""
+    current_mission = game_session.missions[game_session.current_mission]
+    team_size = current_mission.team_size
+    
+    # Simple bot logic: include self and random others
+    available_players = [p.id for p in game_session.players]
+    team = [bot_player.id]
+    
+    # Add random other players
+    other_players = [p.id for p in game_session.players if p.id != bot_player.id]
+    random.shuffle(other_players)
+    team.extend(other_players[:team_size - 1])
+    
+    return team
+
+async def bot_vote_team(game_session: GameSession, bot_player: Player) -> bool:
+    """Bot logic for voting on team proposals"""
+    current_mission = game_session.missions[game_session.current_mission]
+    
+    # Evil bots are more likely to reject teams they're not on
+    if bot_player.role in [Role.MORGANA, Role.ASSASSIN, Role.MORDRED, Role.MINION, Role.OBERON]:
+        if bot_player.id not in current_mission.team_members:
+            return random.choice([True, False, False])  # 33% approve
+        else:
+            return random.choice([True, True, False])  # 66% approve
+    else:
+        # Good bots vote more randomly
+        return random.choice([True, True, False])  # 66% approve
+
+async def bot_vote_mission(game_session: GameSession, bot_player: Player) -> bool:
+    """Bot logic for voting on mission success/failure"""
+    # Evil bots sometimes fail missions
+    if bot_player.role in [Role.MORGANA, Role.ASSASSIN, Role.MORDRED, Role.MINION, Role.OBERON]:
+        # Evil bots fail missions 40% of the time
+        return random.choice([True, True, True, False, False])
+    else:
+        # Good bots always vote for success
+        return True
+
+async def process_bot_actions(session_id: str):
+    """Process pending bot actions for the current game phase"""
+    session = await db.game_sessions.find_one({"id": session_id})
+    if not session:
+        return
+    
+    game_session = GameSession(**session)
+    
+    # Team selection phase - bot leader selects team
+    if game_session.phase == GamePhase.MISSION_TEAM_SELECTION:
+        current_leader = game_session.players[game_session.current_leader]
+        if current_leader.is_bot:
+            await asyncio.sleep(2)  # Simulate thinking time
+            team = await bot_select_team(game_session, current_leader)
+            
+            # Update mission with bot's team selection
+            current_mission = game_session.missions[game_session.current_mission]
+            current_mission.team_members = team
+            current_mission.votes = {}
+            game_session.phase = GamePhase.MISSION_VOTING
+            
+            game_session.game_log.append(f"{current_leader.name} (bot) selected team: {[p.name for p in game_session.players if p.id in team]}")
+            
+            await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+            await broadcast_game_state(session_id)
+    
+    # Team voting phase - bots vote on team
+    elif game_session.phase == GamePhase.MISSION_VOTING:
+        current_mission = game_session.missions[game_session.current_mission]
+        
+        for player in game_session.players:
+            if player.is_bot and player.id not in current_mission.votes:
+                await asyncio.sleep(1)  # Simulate thinking time
+                vote = await bot_vote_team(game_session, player)
+                current_mission.votes[player.id] = vote
+                
+                await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+        
+        # Check if all players have voted
+        if len(current_mission.votes) == len(game_session.players):
+            await process_team_vote_result(session_id)
+    
+    # Mission execution phase - bots vote on mission
+    elif game_session.phase == GamePhase.MISSION_EXECUTION:
+        current_mission = game_session.missions[game_session.current_mission]
+        
+        for player in game_session.players:
+            if player.is_bot and player.id in current_mission.team_members and player.id not in current_mission.mission_votes:
+                await asyncio.sleep(1)  # Simulate thinking time
+                vote = await bot_vote_mission(game_session, player)
+                current_mission.mission_votes[player.id] = vote
+                
+                await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+        
+        # Check if all team members have voted
+        if len(current_mission.mission_votes) == len(current_mission.team_members):
+            await process_mission_vote_result(session_id)
+
+async def process_team_vote_result(session_id: str):
+    """Process the result of team voting"""
+    session = await db.game_sessions.find_one({"id": session_id})
+    if not session:
+        return
+    
+    game_session = GameSession(**session)
+    current_mission = game_session.missions[game_session.current_mission]
+    
+    approve_count = sum(1 for vote in current_mission.votes.values() if vote)
+    total_votes = len(current_mission.votes)
+    
+    # Record vote history
+    vote_record = {
+        "type": "team_vote",
+        "mission": current_mission.number,
+        "votes": {player.name: current_mission.votes.get(player.id, None) for player in game_session.players},
+        "result": "approved" if approve_count > total_votes // 2 else "rejected",
+        "approve_count": approve_count,
+        "total_votes": total_votes
+    }
+    game_session.vote_history.append(vote_record)
+    
+    if approve_count > total_votes // 2:
+        # Team approved
+        current_mission.team_approved = True
+        current_mission.mission_votes = {}
+        game_session.phase = GamePhase.MISSION_EXECUTION
+        game_session.game_log.append(f"Mission {current_mission.number} team approved ({approve_count}/{total_votes} votes)")
+    else:
+        # Team rejected
+        game_session.vote_track += 1
+        game_session.game_log.append(f"Mission {current_mission.number} team rejected ({approve_count}/{total_votes} votes) - Vote track: {game_session.vote_track}/5")
+        
+        if game_session.vote_track >= 5:
+            # Evil wins on 5th rejection
+            game_session.phase = GamePhase.GAME_END
+            game_session.game_result = "evil"
+            game_session.game_log.append("Evil wins! 5 teams rejected in a row.")
+        else:
+            # Move to next leader
+            game_session.current_leader = (game_session.current_leader + 1) % len(game_session.players)
+            for player in game_session.players:
+                player.is_leader = False
+            game_session.players[game_session.current_leader].is_leader = True
+            game_session.phase = GamePhase.MISSION_TEAM_SELECTION
+            current_mission.team_members = []
+            current_mission.votes = {}
+    
+    await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+    await broadcast_game_state(session_id)
+    
+    # Continue bot processing if needed
+    asyncio.create_task(process_bot_actions(session_id))
+
+async def process_mission_vote_result(session_id: str):
+    """Process the result of mission voting"""
+    session = await db.game_sessions.find_one({"id": session_id})
+    if not session:
+        return
+    
+    game_session = GameSession(**session)
+    current_mission = game_session.missions[game_session.current_mission]
+    
+    fail_count = sum(1 for vote in current_mission.mission_votes.values() if not vote)
+    
+    if fail_count >= current_mission.fails_required:
+        current_mission.result = MissionResult.FAIL
+        game_session.evil_wins += 1
+        game_session.game_log.append(f"Mission {current_mission.number} failed! ({fail_count} fail votes)")
+    else:
+        current_mission.result = MissionResult.SUCCESS
+        game_session.good_wins += 1
+        game_session.game_log.append(f"Mission {current_mission.number} succeeded!")
+    
+    # Check win conditions
+    if game_session.good_wins >= 3:
+        # Good wins, move to assassination phase
+        game_session.phase = GamePhase.ASSASSINATION
+        game_session.game_log.append("Good has completed 3 missions! Assassination phase begins.")
+    elif game_session.evil_wins >= 3:
+        # Evil wins
+        game_session.phase = GamePhase.GAME_END
+        game_session.game_result = "evil"
+        game_session.game_log.append("Evil wins! 3 missions failed.")
+    else:
+        # Continue to next mission
+        game_session.current_mission += 1
+        game_session.vote_track = 0
+        
+        # Check for Lady of the Lake phase
+        if (game_session.lady_of_the_lake_enabled and 
+            game_session.lady_of_the_lake_holder and 
+            game_session.current_mission in [2, 3] and 
+            len(game_session.players) >= 7):
+            game_session.phase = GamePhase.LADY_OF_THE_LAKE
+            game_session.game_log.append("Lady of the Lake phase begins!")
+        else:
+            game_session.phase = GamePhase.MISSION_TEAM_SELECTION
+            
+        # Move to next leader
+        game_session.current_leader = (game_session.current_leader + 1) % len(game_session.players)
+        for player in game_session.players:
+            player.is_leader = False
+        game_session.players[game_session.current_leader].is_leader = True
+    
+    await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+    await broadcast_game_state(session_id)
+    
+    # Continue bot processing if needed
+    asyncio.create_task(process_bot_actions(session_id))
+
 def initialize_missions(player_count: int) -> List[Mission]:
     """Initialize missions based on player count"""
     if player_count not in MISSION_CONFIGS:
