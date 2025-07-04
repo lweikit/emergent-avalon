@@ -491,6 +491,28 @@ function App() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-xl font-bold mb-4 text-gray-700">Game Settings</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold">Lady of the Lake</h4>
+                      <p className="text-sm text-gray-600">Reveal player allegiances (7+ players)</p>
+                    </div>
+                    <button
+                      onClick={() => toggleLadyOfLake(!gameState.session.lady_of_the_lake_enabled)}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        gameState.session.lady_of_the_lake_enabled
+                          ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                          : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                      }`}
+                    >
+                      {gameState.session.lady_of_the_lake_enabled ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-4 text-gray-700">Game Rules</h3>
                 <div className="space-y-3 text-sm">
                   <div>
@@ -509,7 +531,7 @@ function App() {
                     <h4 className="font-semibold">🗡️ Assassination:</h4>
                     <p>If Good wins, Assassin can kill Merlin for Evil victory</p>
                   </div>
-                  {players.length >= 7 && (
+                  {gameState.session.lady_of_the_lake_enabled && players.length >= 7 && (
                     <div>
                       <h4 className="font-semibold">🌟 Lady of the Lake:</h4>
                       <p>Reveal a player's allegiance after missions 2 & 3</p>
