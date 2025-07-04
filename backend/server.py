@@ -762,7 +762,7 @@ async def start_test_game(request: StartGameRequest):
     # Add bot players if needed for testing
     while len(game_session.players) < 5:
         bot_name = f"Bot{len(game_session.players)}"
-        bot_player = Player(name=bot_name, is_connected=False)
+        bot_player = Player(name=bot_name, is_connected=False, is_bot=True)
         game_session.players.append(bot_player)
     
     # Assign roles and initialize missions ONLY if not already assigned
