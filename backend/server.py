@@ -153,10 +153,13 @@ class GameSession(BaseModel):
     current_leader: int = 0
     vote_track: int = 0
     lady_of_the_lake_holder: Optional[str] = None
+    lady_of_the_lake_enabled: bool = True
     game_result: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     good_wins: int = 0
     evil_wins: int = 0
+    vote_history: List[Dict] = []
+    game_log: List[str] = []
 
 class CreateSessionRequest(BaseModel):
     name: str
