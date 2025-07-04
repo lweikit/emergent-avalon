@@ -289,6 +289,20 @@ class AvalonAPITester:
             data={"session_id": self.session_id}
         )
         return success
+        
+    def get_session(self):
+        """Get session details"""
+        if not self.session_id:
+            print("❌ No active session")
+            return False, None
+        
+        success, response = self.run_test(
+            "Get Session",
+            "GET",
+            f"session/{self.session_id}",
+            200
+        )
+        return success, response
 
 async def test_basic_game_flow():
     """Test a basic game flow with 5 players"""
