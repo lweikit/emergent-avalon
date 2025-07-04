@@ -340,7 +340,7 @@ async def broadcast_game_state(session_id: str):
             "player_id": player.id
         }
         
-        # Add role information if game has started
+        # Add role information if game has started - THIS IS PERSONALIZED PER PLAYER
         if game_session.phase != GamePhase.LOBBY and player.role:
             player_state["role_info"] = get_role_info(player.role, game_session.players)
         
@@ -358,12 +358,52 @@ async def broadcast_game_state(session_id: str):
                 "team_approved": current_mission.team_approved
             }
         
-        # Send personalized message to each connected player
+        # Send personalized message to this specific player
         message = json.dumps(player_state)
-        if session_id in manager.active_connections:
-            for connection in manager.active_connections[session_id]:
+        await manager.send_to_player(message, session_id, player.id)
+    
+    # Also broadcast to any unidentified connections
+    general_state = {
+        "type": "game_state",
+        "session": {
+            "id": game_session.id,
+            "name": game_session.name,
+            "phase": game_session.phase,
+            "current_mission": game_session.current_mission,
+            "current_leader": game_session.current_leader,
+            "vote_track": game_session.vote_track,
+            "good_wins": game_session.good_wins,
+            "evil_wins": game_session.evil_wins,
+            "game_result": game_session.game_result,
+            "players": [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "is_leader": p.is_leader,
+                    "is_connected": p.is_connected,
+                    "lady_of_the_lake": p.lady_of_the_lake
+                } for p in game_session.players
+            ],
+            "missions": [
+                {
+                    "number": m.number,
+                    "team_size": m.team_size,
+                    "fails_required": m.fails_required,
+                    "team_members": m.team_members,
+                    "result": m.result,
+                    "team_approved": m.team_approved
+                } for m in game_session.missions
+            ],
+            "lady_of_the_lake_holder": game_session.lady_of_the_lake_holder
+        }
+    }
+    
+    # Send to any connections that don't have a player_id
+    if session_id in manager.active_connections:
+        for connection_id, websocket in manager.active_connections[session_id].items():
+            if not any(p.id == connection_id for p in game_session.players):
                 try:
-                    await connection.send_text(message)
+                    await websocket.send_text(json.dumps(general_state))
                 except:
                     pass
 
