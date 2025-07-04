@@ -485,6 +485,104 @@ async def test_full_game_flow():
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
     return 0 if tester.tests_passed == tester.tests_run else 1
 
+async def test_websocket_vs_fallback():
+    """Test both WebSocket and fallback polling mechanisms"""
+    tester = AvalonAPITester()
+    timestamp = datetime.now().strftime("%H%M%S")
+    session_name = f"WebSocket Test {timestamp}"
+    
+    # Create players with unique names
+    players = [f"Player{i}_{timestamp}" for i in range(1, 6)]
+    
+    # Create session and join players
+    if not tester.create_session(session_name, players[0]):
+        return 1
+    
+    # Try to connect first player to WebSocket
+    ws_connected = await tester.connect_websocket(tester.session_id, players[0])
+    
+    # Join other players
+    for player in players[1:]:
+        if not tester.join_session(player):
+            return 1
+    
+    # If WebSocket connected, try to listen for updates
+    if ws_connected:
+        print("\n🔍 Testing WebSocket real-time updates")
+        game_state = await tester.listen_for_updates(players[0])
+        if game_state:
+            print(f"✅ Received real-time update via WebSocket: {game_state.get('type', 'unknown')}")
+        else:
+            print("⚠️ No WebSocket updates received, falling back to polling")
+            # Test polling as fallback
+            success, _ = tester.get_session()
+            if success:
+                print("✅ Fallback polling mechanism is working")
+    else:
+        print("\n🔍 WebSocket connection failed, testing fallback polling")
+        # Test polling as primary method
+        success, _ = tester.get_session()
+        if success:
+            print("✅ Fallback polling mechanism is working")
+    
+    # Start the game
+    if not tester.start_game():
+        return 1
+    
+    # Get the current leader
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    # Find the leader
+    leader_index = None
+    for i, player in enumerate(session_data.get('players', [])):
+        if player.get('is_leader', False):
+            leader_index = i
+            break
+    
+    if leader_index is None:
+        print("❌ No leader found")
+        return 1
+    
+    leader_name = players[leader_index % len(players)]
+    print(f"Current leader: {leader_name}")
+    
+    # Select team for first mission
+    team_members = players[:2]  # First 2 players
+    if not tester.select_team(leader_name, team_members):
+        return 1
+    
+    # All players vote on the team
+    for player in players:
+        if not tester.vote_team(player, True):  # All approve
+            return 1
+    
+    # Wait for a moment to let the votes process
+    time.sleep(1)
+    
+    # Get updated session state
+    success, session_data = tester.get_session()
+    if not success:
+        return 1
+    
+    # Check the current phase
+    current_phase = session_data.get('phase', '')
+    print(f"Current game phase: {current_phase}")
+    
+    # If the team was approved, vote on the mission
+    if current_phase == 'mission_execution':
+        for team_member in team_members:
+            if not tester.vote_mission(team_member, True):  # All vote success
+                return 1
+    
+    # Close WebSocket connections
+    await tester.close_websockets()
+    
+    # Print test results
+    print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+    return 0 if tester.tests_passed == tester.tests_run else 1
+
 def main():
     # Run the tests
     print("🧪 Running Avalon API Tests")
@@ -498,7 +596,20 @@ def main():
         print("\n🔍 Testing Full Game Flow with Lady of the Lake")
         full_result = asyncio.run(test_full_game_flow())
         
-        return 0 if basic_result == 0 and full_result == 0 else 1
+        # Test WebSocket vs. fallback
+        print("\n🔍 Testing WebSocket vs. Fallback Mechanism")
+        websocket_result = asyncio.run(test_websocket_vs_fallback())
+        
+        # Overall result
+        overall_result = basic_result == 0 and full_result == 0 and websocket_result == 0
+        
+        print("\n📋 Test Summary:")
+        print(f"Basic Game Flow Test: {'✅ PASS' if basic_result == 0 else '❌ FAIL'}")
+        print(f"Full Game Flow Test: {'✅ PASS' if full_result == 0 else '❌ FAIL'}")
+        print(f"WebSocket/Fallback Test: {'✅ PASS' if websocket_result == 0 else '❌ FAIL'}")
+        print(f"Overall Result: {'✅ PASS' if overall_result else '❌ FAIL'}")
+        
+        return 0 if overall_result else 1
     except Exception as e:
         print(f"❌ Test execution failed: {str(e)}")
         return 1
