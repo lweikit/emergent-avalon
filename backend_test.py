@@ -968,13 +968,33 @@ def main():
         print("\n🔍 Testing WebSocket vs. Fallback Mechanism")
         websocket_result = asyncio.run(test_websocket_vs_fallback())
         
+        # Test new features
+        print("\n🔍 Testing Bot AI System")
+        bot_result = asyncio.run(test_bot_ai_system())
+        
+        print("\n🔍 Testing Vote Transparency")
+        vote_result = asyncio.run(test_vote_transparency())
+        
+        print("\n🔍 Testing Lady of the Lake Toggle")
+        lady_result = asyncio.run(test_lady_of_lake_toggle())
+        
+        print("\n🔍 Testing Game Restart")
+        restart_result = asyncio.run(test_game_restart())
+        
         # Overall result
-        overall_result = basic_result == 0 and full_result == 0 and websocket_result == 0
+        overall_result = (basic_result == 0 and full_result == 0 and 
+                          websocket_result == 0 and bot_result == 0 and 
+                          vote_result == 0 and lady_result == 0 and 
+                          restart_result == 0)
         
         print("\n📋 Test Summary:")
         print(f"Basic Game Flow Test: {'✅ PASS' if basic_result == 0 else '❌ FAIL'}")
         print(f"Full Game Flow Test: {'✅ PASS' if full_result == 0 else '❌ FAIL'}")
         print(f"WebSocket/Fallback Test: {'✅ PASS' if websocket_result == 0 else '❌ FAIL'}")
+        print(f"Bot AI System Test: {'✅ PASS' if bot_result == 0 else '❌ FAIL'}")
+        print(f"Vote Transparency Test: {'✅ PASS' if vote_result == 0 else '❌ FAIL'}")
+        print(f"Lady of the Lake Toggle Test: {'✅ PASS' if lady_result == 0 else '❌ FAIL'}")
+        print(f"Game Restart Test: {'✅ PASS' if restart_result == 0 else '❌ FAIL'}")
         print(f"Overall Result: {'✅ PASS' if overall_result else '❌ FAIL'}")
         
         return 0 if overall_result else 1
