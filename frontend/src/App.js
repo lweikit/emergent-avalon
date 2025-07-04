@@ -372,18 +372,28 @@ function App() {
     }
   };
 
-  const assassinate = async () => {
+  const toggleLadyOfLake = async (enabled) => {
     try {
-      await axios.post(`${API}/assassinate`, {
+      await axios.post(`${API}/toggle-lady-of-lake`, {
         session_id: sessionId,
-        player_id: playerId,
-        target_player_id: assassinTarget
+        enabled: enabled
       });
-      setAssassinTarget('');
       setError('');
       setTimeout(fetchGameState, 500);
     } catch (error) {
-      setError('Failed to assassinate');
+      setError('Failed to toggle Lady of the Lake: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  const restartGame = async () => {
+    try {
+      await axios.post(`${API}/restart-game`, {
+        session_id: sessionId
+      });
+      setError('');
+      setTimeout(fetchGameState, 500);
+    } catch (error) {
+      setError('Failed to restart game: ' + (error.response?.data?.detail || error.message));
     }
   };
 
