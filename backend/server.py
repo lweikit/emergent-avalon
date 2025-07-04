@@ -298,7 +298,8 @@ async def broadcast_game_state(session_id: str):
                         "name": p.name,
                         "is_leader": p.is_leader,
                         "is_connected": p.is_connected,
-                        "lady_of_the_lake": p.lady_of_the_lake
+                        "lady_of_the_lake": p.lady_of_the_lake,
+                        "role": p.role if game_session.phase != GamePhase.LOBBY else None
                     } for p in game_session.players
                 ],
                 "missions": [
@@ -308,7 +309,9 @@ async def broadcast_game_state(session_id: str):
                         "fails_required": m.fails_required,
                         "team_members": m.team_members,
                         "result": m.result,
-                        "team_approved": m.team_approved
+                        "team_approved": m.team_approved,
+                        "votes": m.votes if len(m.votes) == len(game_session.players) or game_session.phase == GamePhase.MISSION_EXECUTION else {},
+                        "mission_votes": m.mission_votes if len(m.mission_votes) == len(m.team_members) else {}
                     } for m in game_session.missions
                 ],
                 "lady_of_the_lake_holder": game_session.lady_of_the_lake_holder
@@ -317,7 +320,7 @@ async def broadcast_game_state(session_id: str):
         }
         
         # Add role information if game has started
-        if game_session.phase != GamePhase.LOBBY:
+        if game_session.phase != GamePhase.LOBBY and player.role:
             player_state["role_info"] = get_role_info(player.role, game_session.players)
         
         # Add current mission details if in mission phase
@@ -334,7 +337,8 @@ async def broadcast_game_state(session_id: str):
                 "team_approved": current_mission.team_approved
             }
         
-        await manager.broadcast_to_session(json.dumps(player_state), session_id)
+        message = json.dumps(player_state)
+        await manager.broadcast_to_session(message, session_id)
 
 @app.websocket("/api/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
