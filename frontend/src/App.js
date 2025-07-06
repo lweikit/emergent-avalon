@@ -18,9 +18,6 @@ const getBackendUrl = () => {
   return 'http://localhost:8001';
 };
 
-const BACKEND_URL = getBackendUrl();
-const API = `${BACKEND_URL}/api`;
-const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
 const ROLE_DESCRIPTIONS = {
   merlin: "You can see all evil players except Mordred. Guide the good team to victory, but stay hidden from the Assassin.",
@@ -43,6 +40,10 @@ const MISSION_CONFIGS = {
 };
 
 function App() {
+  const [backendUrl, setBackendUrl] = useState(getBackendUrl());
+  const [apiUrl, setApiUrl] = useState(`${getBackendUrl()}/api`);
+  const [wsBaseUrl, setWsBaseUrl] = useState(getBackendUrl().replace('https://', 'wss://').replace('http://', 'ws://'));
+
   const [gameState, setGameState] = useState(null);
   const [playerId, setPlayerId] = useState(null);
   const [sessionId, setSessionId] = useState(null);
@@ -61,14 +62,21 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const ws = useRef(null);
 
+  useEffect(() => {
+    const url = getBackendUrl();
+    setBackendUrl(url);
+    setApiUrl(`${url}/api`);
+    setWsBaseUrl(url.replace('https://', 'wss://').replace('http://', 'ws://'));
+  }, []);
+
   // Debug logging
   useEffect(() => {
     console.log('App initialized with:', {
-      BACKEND_URL,
-      API,
-      WS_URL
+      backendUrl,
+      apiUrl,
+      wsBaseUrl
     });
-  }, []);
+  }, [backendUrl, apiUrl, wsBaseUrl]);
 
   useEffect(() => {
     if (sessionId) {
@@ -87,7 +95,7 @@ function App() {
       ws.current.close();
     }
     
-    const wsUrl = `${WS_URL}/api/ws/${sessionId}?player_id=${playerId}`;
+    const wsUrl = `${wsBaseUrl}/api/ws/${sessionId}?player_id=${playerId}`;
     console.log('Connecting to WebSocket:', wsUrl);
     
     ws.current = new WebSocket(wsUrl);
@@ -157,7 +165,7 @@ function App() {
     
     try {
       console.log('Fetching game state via API...');
-      const response = await axios.get(`${API}/session/${sessionId}`);
+      const response = await axios.get(`${apiUrl}/session/${sessionId}`);
       console.log('Fetched game state via API:', response.data);
       
       // Convert API response to match WebSocket format
@@ -254,7 +262,7 @@ function App() {
     try {
       setError('');
       console.log('Creating session...');
-      const response = await axios.post(`${API}/create-session`, {
+      const response = await axios.post(`${apiUrl}/create-session`, {
         name: sessionName,
         player_name: playerName
       });
@@ -274,7 +282,7 @@ function App() {
     try {
       setError('');
       console.log('Joining session...');
-      const response = await axios.post(`${API}/join-session`, {
+      const response = await axios.post(`${apiUrl}/join-session`, {
         session_id: sessionIdInput,
         player_name: playerName
       });
@@ -292,7 +300,7 @@ function App() {
 
   const startGame = async () => {
     try {
-      await axios.post(`${API}/start-game`, {
+      await axios.post(`${apiUrl}/start-game`, {
         session_id: sessionId
       });
       setError('');
@@ -305,7 +313,7 @@ function App() {
 
   const startTestGame = async () => {
     try {
-      await axios.post(`${API}/start-test-game`, {
+      await axios.post(`${apiUrl}/start-test-game`, {
         session_id: sessionId
       });
       setError('');
@@ -318,7 +326,7 @@ function App() {
 
   const selectTeam = async () => {
     try {
-      await axios.post(`${API}/select-team`, {
+      await axios.post(`${apiUrl}/select-team`, {
         session_id: sessionId,
         player_id: playerId,
         team_members: selectedTeam
@@ -333,7 +341,7 @@ function App() {
 
   const voteTeam = async (vote) => {
     try {
-      await axios.post(`${API}/vote-team`, {
+      await axios.post(`${apiUrl}/vote-team`, {
         session_id: sessionId,
         player_id: playerId,
         vote: vote
@@ -347,7 +355,7 @@ function App() {
 
   const voteMission = async (vote) => {
     try {
-      await axios.post(`${API}/vote-mission`, {
+      await axios.post(`${apiUrl}/vote-mission`, {
         session_id: sessionId,
         player_id: playerId,
         vote: vote
@@ -361,7 +369,7 @@ function App() {
 
   const useLadyOfLake = async () => {
     try {
-      const response = await axios.post(`${API}/lady-of-lake`, {
+      const response = await axios.post(`${apiUrl}/lady-of-lake`, {
         session_id: sessionId,
         player_id: playerId,
         target_player_id: ladyTarget
@@ -377,7 +385,7 @@ function App() {
 
   const assassinate = async () => {
     try {
-      await axios.post(`${API}/assassinate`, {
+      await axios.post(`${apiUrl}/assassinate`, {
         session_id: sessionId,
         player_id: playerId,
         target_player_id: assassinTarget
@@ -392,7 +400,7 @@ function App() {
 
   const toggleLadyOfLake = async (enabled) => {
     try {
-      await axios.post(`${API}/toggle-lady-of-lake`, {
+      await axios.post(`${apiUrl}/toggle-lady-of-lake`, {
         session_id: sessionId,
         enabled: enabled
       });
@@ -405,7 +413,7 @@ function App() {
 
   const restartGame = async () => {
     try {
-      await axios.post(`${API}/restart-game`, {
+      await axios.post(`${apiUrl}/restart-game`, {
         session_id: sessionId
       });
       setError('');
