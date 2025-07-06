@@ -14,8 +14,13 @@ COPY frontend/ .
 # Set environment variable
 ENV REACT_APP_BACKEND_URL=http://localhost:8001
 
+# Copy entrypoint script
+COPY frontend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 3000
 
 # Command to run the application
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["yarn", "start"]

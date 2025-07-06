@@ -5,6 +5,9 @@ import axios from 'axios';
 // Environment variable access compatible with React 19 and craco
 const getBackendUrl = () => {
   // Try different methods to access environment variables
+  if (typeof window !== 'undefined' && window._env_ && window._env_.REACT_APP_BACKEND_URL) {
+    return window._env_.REACT_APP_BACKEND_URL;
+  }
   if (typeof window !== 'undefined' && window.process && window.process.env) {
     return window.process.env.REACT_APP_BACKEND_URL;
   }
