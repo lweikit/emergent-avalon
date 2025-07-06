@@ -14,8 +14,8 @@ const getBackendUrl = () => {
   if (typeof process !== 'undefined' && process.env) {
     return process.env.REACT_APP_BACKEND_URL;
   }
-  // Fallback - this will be replaced during build
-  return 'https://6dea0238-f0e0-412c-a0be-b01fdaec96fe.preview.emergentagent.com';
+  // Fallback for local development
+  return 'http://localhost:8001';
 };
 
 const BACKEND_URL = getBackendUrl();
