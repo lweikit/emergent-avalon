@@ -33,7 +33,7 @@ A real-time multiplayer implementation of The Resistance: Avalon board game buil
 2. Copy `.env.example` to `.env` and adjust values if needed
 3. Run the application:
    ```bash
-   docker-compose up
+   docker compose up --build -d
    ```
 4. Access the game at http://localhost:3000
 
@@ -47,7 +47,7 @@ A real-time multiplayer implementation of The Resistance: Avalon board game buil
    pip install -r requirements.txt
    ```
 
-2. Set up MongoDB and environment variables in `backend/.env`:
+2. Set up MongoDB and environment variables in `.env`:
    ```
    MONGO_URL=mongodb://localhost:27017
    DB_NAME=avalon_game
@@ -66,7 +66,7 @@ A real-time multiplayer implementation of The Resistance: Avalon board game buil
    yarn install
    ```
 
-2. Set up environment variables in `frontend/.env`:
+2. Ensure `REACT_APP_BACKEND_URL` is set in the root `.env` file:
    ```
    REACT_APP_BACKEND_URL=http://localhost:8001
    ```
@@ -129,7 +129,7 @@ A real-time multiplayer implementation of The Resistance: Avalon board game buil
 - `REACT_APP_BACKEND_URL`: Backend API URL
 
 Create a `.env` file in the project root (you can copy `/.env.example`) to
-override these variables when running `docker-compose`. Changes to
+override these variables when running `docker compose`. Changes to
 `REACT_APP_BACKEND_URL` require restarting the `frontend` service so the React
 app picks up the new value.
 
@@ -143,7 +143,7 @@ The application supports hot reload for development:
 
 Use Docker Compose for easy deployment:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Services will be available at:
