@@ -30,11 +30,12 @@ A real-time multiplayer implementation of The Resistance: Avalon board game buil
 ## Quick Start with Docker Compose
 
 1. Clone the repository
-2. Run the application:
+2. Copy `.env.example` to `.env` and adjust values if needed
+3. Run the application:
    ```bash
    docker-compose up
    ```
-3. Access the game at http://localhost:3000
+4. Access the game at http://localhost:3000
 
 ## Manual Setup
 
@@ -124,8 +125,13 @@ A real-time multiplayer implementation of The Resistance: Avalon board game buil
 - `MONGO_URL`: MongoDB connection string
 - `DB_NAME`: Database name
 
-### Frontend  
+### Frontend
 - `REACT_APP_BACKEND_URL`: Backend API URL
+
+Create a `.env` file in the project root (you can copy `/.env.example`) to
+override these variables when running `docker-compose`. Changes to
+`REACT_APP_BACKEND_URL` require restarting the `frontend` service so the React
+app picks up the new value.
 
 ## Development
 
@@ -144,6 +150,9 @@ Services will be available at:
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8001
 - MongoDB: localhost:27017
+
+If you provide a Cloudflare Tunnel token in `.env`, the optional `cloudflared`
+service will expose the frontend through Cloudflare.
 
 ## License
 

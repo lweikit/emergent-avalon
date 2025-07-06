@@ -25,8 +25,8 @@ services:
     ports:
       - "8001:8001"
     environment:
-      MONGO_URL: mongodb://admin:password123@mongodb:27017/avalon_game?authSource=admin
-      DB_NAME: avalon_game
+      MONGO_URL: ${MONGO_URL}
+      DB_NAME: ${DB_NAME}
     depends_on:
       - mongodb
     networks:
@@ -43,13 +43,24 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_BACKEND_URL: http://localhost:8001
+      REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL}
     depends_on:
       - backend
     networks:
       - avalon-network
     volumes:
       - ./frontend:/app/frontend
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.6.0
+    container_name: avalon-cloudflared
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+    networks:
+      - avalon-network
 
 volumes:
   mongodb_data:
