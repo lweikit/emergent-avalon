@@ -1,0 +1,43 @@
+# Stage 1: Build React app
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY frontend/package.json frontend/yarn.lock ./
+RUN yarn install --frozen-lockfile
+
+COPY frontend/ .
+
+# Build with empty backend URL so all requests are relative (same-origin)
+ENV REACT_APP_BACKEND_URL=""
+RUN yarn build
+
+# Stage 2: Serve with nginx
+FROM nginx:1.27-alpine
+
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy nginx template and entrypoint
+COPY frontend/nginx.conf.template /etc/nginx/avalon.conf.template
+COPY frontend/docker-entrypoint.sh /docker-entrypoint-avalon.sh
+RUN chmod +x /docker-entrypoint-avalon.sh
+
+# Copy built React app
+COPY --from=build /app/build /app/build
+
+# Prepare for non-root: nginx needs to write pid and temp files
+RUN chown -R nginx:nginx /var/cache/nginx /var/log/nginx /etc/nginx/conf.d \
+    && touch /var/run/nginx.pid && chown nginx:nginx /var/run/nginx.pid
+
+# Default backend host — override via env var
+# docker-compose: BACKEND_HOST=backend
+# k8s:            BACKEND_HOST=avalon-backend
+ENV BACKEND_HOST=avalon-backend
+
+USER nginx
+
+EXPOSE 3000
+
+ENTRYPOINT ["/docker-entrypoint-avalon.sh"]
+CMD ["nginx", "-g", "daemon off;"]
