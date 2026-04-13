@@ -90,10 +90,10 @@ function App() {
   }
 
   if (effectiveState.session?.phase === "lobby") {
-    return <Lobby session={effectiveState.session} playerId={playerId} isConnected={isConnected} />;
+    return <Lobby session={effectiveState.session} playerId={playerId} isConnected={isConnected} onLeave={resetToMenu} />;
   }
 
-  return <GameBoard gameState={effectiveState} playerId={playerId} playerToken={playerToken} isConnected={isConnected} />;
+  return <GameBoard gameState={effectiveState} playerId={playerId} playerToken={playerToken} isConnected={isConnected} onLeave={resetToMenu} />;
 }
 
 export default App;

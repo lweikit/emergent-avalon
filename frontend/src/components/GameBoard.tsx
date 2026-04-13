@@ -8,6 +8,7 @@ interface GameBoardProps {
   playerId: string | null;
   playerToken: string | null;
   isConnected: boolean;
+  onLeave: () => void;
 }
 
 interface AxiosErrorResponse {
@@ -19,7 +20,7 @@ interface AxiosErrorResponse {
   message: string;
 }
 
-export default function GameBoard({ gameState, playerId, playerToken, isConnected }: GameBoardProps) {
+export default function GameBoard({ gameState, playerId, playerToken, isConnected, onLeave }: GameBoardProps) {
   const session = gameState?.session;
   const currentMission = gameState?.current_mission_details;
   const roleInfo = gameState?.role_info;
@@ -80,6 +81,9 @@ export default function GameBoard({ gameState, playerId, playerToken, isConnecte
                 <span className={`px-2 py-1 rounded ${isConnected ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
                   {isConnected ? "Real-time" : "Offline"}
                 </span>
+                <button onClick={onLeave} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded transition-colors text-xs min-h-[44px]">
+                  Leave
+                </button>
               </div>
             </div>
             <div className="flex gap-4 text-center">

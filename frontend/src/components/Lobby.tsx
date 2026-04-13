@@ -6,9 +6,10 @@ interface LobbyProps {
   session: Session;
   playerId: string | null;
   isConnected: boolean;
+  onLeave: () => void;
 }
 
-export default function Lobby({ session, playerId, isConnected }: LobbyProps) {
+export default function Lobby({ session, playerId, isConnected, onLeave }: LobbyProps) {
   const players = session.players || [];
   const activePlayers = players.filter((p) => !p.is_spectator);
   const spectators = players.filter((p) => p.is_spectator);
@@ -47,6 +48,9 @@ export default function Lobby({ session, playerId, isConnected }: LobbyProps) {
               <span className={`px-2 py-1 rounded ${isConnected ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
                 {isConnected ? "Connected" : "Offline"}
               </span>
+              <button onClick={onLeave} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded transition-colors text-xs min-h-[44px]">
+                Leave
+              </button>
             </div>
           </div>
 
