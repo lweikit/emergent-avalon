@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../api";
 import { GameState, LadyResult } from "../types";
+import RuleBook from "./RuleBook";
 
 interface GameBoardProps {
   gameState: GameState;
@@ -497,6 +498,8 @@ export default function GameBoard({ gameState, playerId, playerToken, isConnecte
                 </div>
               </div>
             )}
+            {/* Rules reference */}
+            <RuleBook />
           </div>
         </div>
       </div>

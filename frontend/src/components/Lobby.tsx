@@ -1,5 +1,6 @@
 import api from "../api";
 import { Session } from "../types";
+import RuleBook from "./RuleBook";
 
 interface LobbyProps {
   session: Session;
@@ -87,16 +88,6 @@ export default function Lobby({ session, playerId, isConnected }: LobbyProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-semibold text-sm">Lady of the Lake</h4>
-                      <p className="text-xs text-gray-600">Reveal allegiances (7+ players)</p>
-                    </div>
-                    <button onClick={toggleLady}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${session.lady_of_the_lake_enabled ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "bg-gray-300 hover:bg-gray-400 text-gray-700"}`}>
-                      {session.lady_of_the_lake_enabled ? "On" : "Off"}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
                       <h4 className="font-semibold text-sm">Mordred</h4>
                       <p className="text-xs text-gray-600">Evil, hidden from Merlin (9+ players)</p>
                     </div>
@@ -115,16 +106,16 @@ export default function Lobby({ session, playerId, isConnected }: LobbyProps) {
                       {session.oberon_enabled ? "On" : "Off"}
                     </button>
                   </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-bold mb-4 text-gray-700">Game Rules</h3>
-                <div className="space-y-3 text-xs sm:text-sm">
-                  <p><strong>Missions:</strong> Complete 3 out of 5 missions to win as Good</p>
-                  <p><strong>Teams:</strong> Leader proposes teams, everyone votes</p>
-                  <p><strong>Execution:</strong> Team members secretly vote Success/Fail</p>
-                  <p><strong>Assassination:</strong> If Good wins, Assassin can kill Merlin for Evil victory</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-sm">Lady of the Lake</h4>
+                      <p className="text-xs text-gray-600">Reveal allegiances (7+ players)</p>
+                    </div>
+                    <button onClick={toggleLady}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${session.lady_of_the_lake_enabled ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "bg-gray-300 hover:bg-gray-400 text-gray-700"}`}>
+                      {session.lady_of_the_lake_enabled ? "On" : "Off"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -152,6 +143,10 @@ export default function Lobby({ session, playerId, isConnected }: LobbyProps) {
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="mt-6">
+            <RuleBook />
           </div>
         </div>
       </div>

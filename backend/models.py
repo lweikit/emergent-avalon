@@ -67,10 +67,10 @@ class GameSession(BaseModel):
     current_leader: int = 0
     vote_track: int = 0
     lady_of_the_lake_holder: Optional[str] = None
-    lady_of_the_lake_enabled: bool = True
+    lady_of_the_lake_enabled: bool = False
     lady_of_the_lake_results: Dict[str, Dict[str, str]] = {}
-    mordred_enabled: bool = True
-    oberon_enabled: bool = True
+    mordred_enabled: bool = False
+    oberon_enabled: bool = False
     good_total_wins: int = 0
     evil_total_wins: int = 0
     game_result: Optional[str] = None

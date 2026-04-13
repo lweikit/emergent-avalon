@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../api";
+import RuleBook from "./RuleBook";
 
 interface MainMenuProps {
   onJoined: (sessionId: string, playerId: string, playerToken: string) => void;
@@ -103,9 +104,8 @@ export default function MainMenu({ onJoined }: MainMenuProps) {
           </div>
         </div>
 
-        <div className="mt-6 text-center text-xs sm:text-sm text-gray-500">
-          <p>Social deduction game for 5-10 players</p>
-          <p>Complete missions as Good or sabotage as Evil</p>
+        <div className="mt-6">
+          <RuleBook />
         </div>
       </div>
     </div>
