@@ -2,14 +2,14 @@
 
 ## Domain Setup
 Single domain with path-based routing:
-- **Frontend**: `avalon.weikit.me` → Port 3000
-- **Backend**: `avalon.weikit.me/api/*` → Port 8001
+- **Frontend**: `your-domain.com` → Port 3000
+- **Backend**: `your-domain.com/api/*` → Port 8001
 
 ## Backend CORS Configuration
 ```python
 allow_origins=[
     "http://localhost:3000",
-    "https://avalon.weikit.me",
+    "https://your-domain.com",
 ]
 ```
 Configurable via `CORS_ORIGINS` env var (comma-separated).
@@ -29,10 +29,10 @@ tunnel: YOUR_TUNNEL_ID
 credentials-file: /path/to/credentials.json
 
 ingress:
-  - hostname: avalon.weikit.me
+  - hostname: your-domain.com
     path: /api/*
     service: http://localhost:8001
-  - hostname: avalon.weikit.me
+  - hostname: your-domain.com
     service: http://localhost:3000
   - service: http_status:404
 ```

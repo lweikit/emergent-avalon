@@ -48,6 +48,10 @@ dump.rdb
 *.pem
 .gitconfig
 
+# Platform artifacts
+.emergent/
+test_result.md
+
 # Python
 __pycache__/
 *pyc*

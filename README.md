@@ -1,165 +1,86 @@
-# 🏰 Avalon Board Game
+# Avalon Board Game
 
-A production-ready, real-time multiplayer implementation of The Resistance: Avalon board game built with React, FastAPI, and MongoDB.
+A real-time multiplayer implementation of The Resistance: Avalon. Built with TypeScript/React, FastAPI, MongoDB, and Docker.
 
-## ⚡ Quick Start
-
-```bash
-# Production deployment
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
-
-# Development
-sudo supervisorctl restart all
-
-# Run tests
-cd tests && ./run_all_tests.sh
-```
-
-## 📁 Project Structure
-
-```
-/
-├── 📱 frontend/           # React application
-├── 🔧 backend/            # FastAPI server
-├── 🧪 tests/             # All tests (backend, frontend, integration)
-├── 📚 docs/              # Documentation and configs
-├── 🛠️ scripts/            # Deployment and utility scripts
-├── 🐳 docker-compose.yml  # Container orchestration
-└── 📖 README.md          # This file
-```
-
-## 🎮 Game Features
-
-### Core Gameplay
-- **Complete Avalon Experience**: All roles, missions, and game mechanics
-- **5-10 Player Support**: Supports all player counts with proper role distribution
-- **Spectator Mode**: Watch games without participating
-- **Lady of the Lake**: Expansion content with persistent knowledge tracking
-- **Assassination Phase**: Complete endgame mechanics with improved bot AI
-
-### Advanced Features
-- **Real-time Updates**: WebSocket support with API polling fallback
-- **Session Management**: Create and join games with unique IDs
-- **Reconnection Support**: Players can rejoin if disconnected
-- **Auto-Cleanup**: Sessions automatically deleted after 7 days
-- **Mobile Optimized**: Responsive design for all devices
-- **Dynamic Role Balancing**: Intelligent role assignment based on win patterns
-
-### Production Ready
-- **Self-hosting**: Complete Docker setup with Cloudflare tunnel support
-- **Security**: Proper role/vote privacy with no information leakage
-- **Performance**: Optimized for concurrent players with race condition prevention
-- **Monitoring**: Health checks and comprehensive logging
-
-## 🎭 Roles Included
-
-### Good Team
-- **Merlin**: Sees all evil except Mordred and Oberon
-- **Percival**: Sees Merlin and Morgana
-- **Loyal Servants**: Trust in Merlin's guidance
-
-### Evil Team
-- **Morgana**: Appears as Merlin to Percival
-- **Assassin**: Can kill Merlin if good wins
-- **Mordred**: Hidden from Merlin
-- **Oberon**: Hidden from everyone
-- **Minions**: Work with other evil players
-
-## 🚀 Deployment Options
-
-### Option 1: Docker Compose (Recommended)
-```bash
-# Clone and deploy
-git clone [your-repo]
-cd avalon-game
-./scripts/deploy.sh
-```
-
-### Option 2: Development Mode
-```bash
-# Backend
-cd backend && pip install -r requirements.txt
-sudo supervisorctl start backend
-
-# Frontend  
-cd frontend && yarn install && yarn start
-```
-
-### Option 3: Production with Cloudflare
-```bash
-# Set environment variables
-export REACT_APP_BACKEND_URL=https://your-api-domain.com
-export TUNNEL_TOKEN=your_cloudflare_token
-
-# Deploy
-./scripts/deploy.sh
-```
-
-## 🌐 Domain Configuration
-
-Single domain with path-based routing:
-- `https://avalon.weikit.me` — frontend
-- `https://avalon.weikit.me/api` — backend (proxied via nginx/Cloudflare Tunnel)
-
-## 🧪 Testing
+## Quick Start
 
 ```bash
-# Run all tests
-cd tests && ./run_all_tests.sh
-
-# Backend tests only
-cd tests/backend && python backend_test.py
-
-# Integration tests
-cd tests/integration && ./test_seven_players.sh
-
-# Deployment test
-cd tests/integration && ./test-deploy.sh
+cp .env.example .env    # edit credentials before deploying
+docker compose up -d
 ```
 
-## 📊 Game Flow
+Open `http://localhost:3000`. For external access, set `TUNNEL_TOKEN` in `.env` and run with the tunnel profile:
 
-1. **Lobby**: Players join and configure settings
-2. **Role Assignment**: Secret roles distributed (spectators excluded)
-3. **Mission Cycles**: 
-   - Leader proposes team
-   - All players vote on team
-   - Team members vote on mission success/failure
-4. **Lady of the Lake**: Reveal player allegiances (7+ players)
-5. **Assassination**: Assassin attempts to kill Merlin
-6. **Game End**: Victory determination with role reveals
-
-## 🔧 Configuration
-
-### Environment Variables
-```env
-# Backend
-MONGO_URL=mongodb://localhost:27017/avalon_game
-DB_NAME=avalon_game
-
-# Frontend
-REACT_APP_BACKEND_URL=https://your-backend-domain.com
-
-# Optional: Cloudflare Tunnel
-TUNNEL_TOKEN=your_tunnel_token
+```bash
+docker compose --profile tunnel up -d
 ```
 
-### Game Settings
-- **Lady of the Lake**: Toggle in lobby (7+ players)
-- **Dynamic Roles**: Mordred/Oberon based on win patterns
-- **Session Cleanup**: Auto-delete after 7 days
-- **Spectator Limit**: Unlimited spectators
+## Game Features
 
-## 🛠️ Development
+- **5-10 players** with correct role distribution per official Avalon rules
+- **Spectator mode** — watch without participating
+- **Real-time** via WebSocket, with automatic polling fallback
+- **Session persistence** — survives page refresh (localStorage)
+- **Reconnection** — rejoin by name if disconnected
+- **Mobile friendly** — responsive layout, 48px tap targets
+- **Auto-cleanup** — sessions deleted after 7 days
 
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 20+ (for local development)
-- Python 3.11+ (for local development)
-- MongoDB 7.0+
+### Roles
 
-### Local Development
+| Good | Evil |
+|------|------|
+| Merlin (sees evil except Mordred/Oberon) | Morgana (appears as Merlin to Percival) |
+| Percival (sees Merlin and Morgana) | Assassin (kills Merlin if good wins) |
+| Loyal Servants | Mordred (hidden from Merlin, toggleable) |
+| | Oberon (hidden from everyone, toggleable) |
+| | Minions |
+
+### Game Flow
+
+1. **Lobby** — players join, configure settings (Lady of the Lake, Mordred, Oberon toggles)
+2. **Team Selection** — leader proposes a team
+3. **Team Vote** — all players approve/reject, results revealed simultaneously
+4. **Mission** — team members secretly vote success/fail (good must vote success)
+5. **Mission Reveal** — result shown with vote counts before advancing
+6. **Lady of the Lake** (7+ players, after missions 2/3/4) — reveal a player's allegiance
+7. **Assassination** — if good wins 3 missions, assassin picks Merlin
+8. **Game End** — roles revealed, win reason shown
+
+5 rejected teams in a row = evil wins automatically.
+
+## Architecture
+
+```
+frontend/          TypeScript React app (CRA + Tailwind)
+  src/
+    components/    MainMenu, Lobby, GameBoard
+    hooks/         useWebSocket
+    api.ts         Typed API layer
+    types.ts       Shared interfaces
+
+backend/           Python FastAPI
+  server.py        Routes, WebSocket, lifecycle
+  models.py        Pydantic models, game config tables
+  game_logic.py    Pure functions: role assignment, vote processing, phase transitions
+  bots.py          Bot AI for all game phases
+  websocket.py     Connection manager, personalized broadcasts
+  auth.py          Token issue/verify/cleanup
+```
+
+## Configuration
+
+Copy `.env.example` to `.env` and set:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MONGO_INITDB_ROOT_PASSWORD` | Yes | MongoDB password (change from default) |
+| `MONGO_URL` | Yes | Connection string matching the password above |
+| `DB_NAME` | No | Database name (default: `avalon_game`) |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins |
+| `TUNNEL_TOKEN` | No | Cloudflare tunnel token for external access |
+
+## Development
+
 ```bash
 # Backend
 cd backend
@@ -167,248 +88,46 @@ pip install -r requirements.txt
 uvicorn server:app --reload --port 8001
 
 # Frontend
-cd frontend  
+cd frontend
 yarn install
 yarn start
 ```
 
-### Adding Features
-1. Backend changes: Edit `backend/server.py`
-2. Frontend changes: Edit `frontend/src/App.js`
-3. Tests: Add to appropriate `tests/` subdirectory
-4. Documentation: Update relevant docs in `docs/`
+## Testing
 
-## 🔐 Security Features
+```bash
+# Unit tests (no infra needed, pure game logic)
+cd backend && python -m pytest ../tests/test_game_logic.py -v
 
-- **Role Privacy**: Players only see their own role during gameplay
-- **Vote Security**: Individual mission votes never exposed
-- **Lady of Lake Privacy**: Results only visible to user
-- **Session Isolation**: Games are completely isolated
-- **Input Validation**: All user inputs validated
-- **Rate Limiting**: Prevents spam and abuse
+# Integration tests (needs docker compose up)
+python tests/test_integration.py
 
-## 📈 Performance
+# End-to-end WebSocket tests (needs docker compose up)
+python tests/test_e2e.py
+```
 
-- **Concurrent Players**: Supports 10+ concurrent players per session
-- **Multiple Sessions**: Unlimited concurrent game sessions
-- **WebSocket Optimization**: Efficient real-time updates
-- **Database Optimization**: Indexed queries and connection pooling
-- **Memory Management**: Automatic cleanup of old sessions
+139 unit + 163 integration + 23 e2e = **325 tests**.
 
-## 🤝 Contributing
+## Security
 
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature-name`
-3. Make changes and add tests
-4. Run test suite: `cd tests && ./run_all_tests.sh`
-5. Submit pull request
+- Player tokens required on all mutation endpoints
+- WebSocket identify verified with token (connection closed on failure)
+- Roles hidden during gameplay — only your own role visible
+- Individual mission votes never exposed — only aggregate pass/fail counts
+- Lady of the Lake knowledge only sent to the holder
+- Good players cannot vote fail (server-enforced)
+- Session-level locking on all state mutations
+- Rate limiting (200 req/min per IP)
 
-## 📞 Support
+## Domain Setup
 
-For deployment help, check:
-- `docs/DEPLOYMENT_GUIDE.md` - Complete deployment guide
-- `tests/README.md` - Testing documentation
-- Issues tab - Known issues and solutions
+Single domain with nginx path-based routing:
 
-## 🎯 What's New
+- `https://your-domain.com` — frontend
+- `https://your-domain.com/api/*` — backend proxy
 
-- ✅ **Fixed race conditions** in voting system
-- ✅ **Optimized concurrent voting** - multiple players can vote simultaneously
-- ✅ **Enhanced role security** - Merlin can no longer see Oberon
-- ✅ **Persistent Lady of Lake** - Knowledge maintained throughout game
-- ✅ **Organized repository** - Clean structure with proper test organization
-- ✅ **Production deployment** - Docker and Cloudflare tunnel support
+See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for Cloudflare Tunnel configuration.
 
 ---
 
-**Ready to play Avalon?** 🏰⚔️
-
-Access the game at your configured domain or run locally at `http://localhost:3000`!
-
-### Backend Setup
-
-1. Install Python dependencies:
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   ```
-
-2. Set up MongoDB and environment variables in `.env`:
-   ```
-   MONGO_URL=mongodb://localhost:27017
-   DB_NAME=avalon_game
-   ```
-
-3. Run the backend:
-   ```bash
-   uvicorn server:app --host 0.0.0.0 --port 8001 --reload
-   ```
-
-### Frontend Setup
-
-1. Install Node.js dependencies:
-   ```bash
-   cd frontend
-   yarn install
-   ```
-
-2. Ensure `REACT_APP_BACKEND_URL` is set in the root `.env` file:
-   ```
-   REACT_APP_BACKEND_URL=http://localhost:8001
-   ```
-
-3. Run the frontend:
-   ```bash
-   yarn start
-   ```
-
-## Game Features
-
-### Core Gameplay
-1. **Create Session**: One player creates a game session
-2. **Join Players**: 5-10 players join using the session ID
-3. **Spectator Mode**: Additional players can join as spectators
-4. **Start Game**: Roles are automatically assigned
-5. **Missions**: Complete 5 missions with team selection and voting
-6. **Win Conditions**: 
-   - Good wins by completing 3 missions
-   - Evil wins by failing 3 missions or forcing 5 vote rejections
-   - Assassin can kill Merlin if good wins
-
-### Advanced Features
-- **Session ID Display**: Easily share session IDs for reconnection
-- **Mobile Responsive**: Optimized for all screen sizes
-- **Auto-Cleanup**: Sessions deleted after 7 days to save space
-- **Bot Integration**: Test games with AI players
-- **Real-time Sync**: WebSocket with API polling fallback
-
-## Game Flow
-
-1. **Lobby**: Players join and wait for game start
-2. **Role Assignment**: Secret roles distributed (spectators don't get roles)
-3. **Mission Cycles**: 
-   - Leader proposes team
-   - All players vote on team
-   - Team members vote on mission success/failure
-4. **Lady of the Lake**: Reveal player allegiances (7+ players)
-5. **Assassination**: Assassin attempts to kill Merlin
-6. **Game End**: Victory determination
-
-## Production Deployment
-
-### Using Cloudflare Tunnel (Recommended)
-
-1. Set up a Cloudflare Tunnel:
-   ```bash
-   # Install cloudflared
-   # Visit: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
-   
-   # Create tunnel and get token
-   cloudflared tunnel create avalon-game
-   ```
-
-2. Add your tunnel token to `.env`:
-   ```env
-   TUNNEL_TOKEN=your_tunnel_token_here
-   REACT_APP_BACKEND_URL=https://your-domain.com
-   ```
-
-3. Deploy:
-   ```bash
-   ./deploy.sh
-   ```
-
-### Self-Hosting Setup
-
-1. Configure your reverse proxy (nginx/Apache) to point to:
-   - Frontend: `localhost:3000`
-   - Backend API: `localhost:8001`
-
-2. Update `.env` with your domain:
-   ```env
-   REACT_APP_BACKEND_URL=https://your-domain.com/api
-   ```
-
-3. Ensure SSL certificates are configured
-
-### Environment Variables
-
-#### Required
-- `MONGO_URL`: MongoDB connection string
-- `DB_NAME`: Database name
-- `REACT_APP_BACKEND_URL`: Backend API URL
-
-#### Optional
-- `TUNNEL_TOKEN`: Cloudflare tunnel token
-- `MONGO_INITDB_ROOT_USERNAME`: MongoDB root username
-- `MONGO_INITDB_ROOT_PASSWORD`: MongoDB root password
-
-## Security Considerations
-
-### Production Checklist
-- [ ] Change default MongoDB credentials
-- [ ] Use strong passwords
-- [ ] Configure HTTPS/SSL
-- [ ] Set up firewall rules
-- [ ] Regular database backups
-- [ ] Monitor resource usage
-- [ ] Update dependencies regularly
-
-## Technical Architecture
-
-- **Frontend**: React 19 with Tailwind CSS
-- **Backend**: FastAPI with WebSocket support
-- **Database**: MongoDB for game state persistence
-- **Real-time**: WebSocket connections with API polling fallback
-
-## API Endpoints
-
-- `POST /api/create-session` - Create new game session
-- `POST /api/join-session` - Join existing session
-- `POST /api/start-game` - Start the game
-- `POST /api/select-team` - Propose mission team
-- `POST /api/vote-team` - Vote on proposed team
-- `POST /api/vote-mission` - Vote on mission outcome
-- `POST /api/lady-of-lake` - Use Lady of the Lake
-- `POST /api/assassinate` - Assassin kills target
-- `GET /api/session/{id}` - Get session details
-- `WS /ws/{session_id}` - WebSocket connection
-
-## Environment Variables
-
-### Backend
-- `MONGO_URL`: MongoDB connection string
-- `DB_NAME`: Database name
-
-### Frontend
-- `REACT_APP_BACKEND_URL`: Backend API URL
-
-Create a `.env` file in the project root (you can copy `/.env.example`) to
-override these variables when running `docker compose`. Changes to
-`REACT_APP_BACKEND_URL` require restarting the `frontend` service so the React
-app picks up the new value.
-
-## Development
-
-The application supports hot reload for development:
-- Backend: FastAPI with `--reload` flag
-- Frontend: React development server
-
-## Deployment
-
-Use Docker Compose for easy deployment:
-```bash
-docker compose up -d
-```
-
-Services will be available at:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:8001
-- MongoDB: localhost:27017
-
-If you provide a Cloudflare Tunnel token in `.env`, the optional `cloudflared`
-service will expose the frontend through Cloudflare.
-
-## License
-
-MIT License - see LICENSE file for details.
+MIT License — see [LICENSE](LICENSE) for details.

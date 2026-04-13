@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
@@ -7,29 +5,38 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-avalon123}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-changeme}
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-avalon_game}
     volumes:
       - mongodb_data:/data/db
-    # MongoDB is only accessed by the backend service — no host port exposure
     networks:
       - avalon-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   backend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: avalon-backend
     restart: unless-stopped
     environment:
-      - MONGO_URL=${MONGO_URL:-mongodb://admin:avalon123@mongodb:27017/avalon_game?authSource=admin}
+      - MONGO_URL=${MONGO_URL:-mongodb://admin:changeme@mongodb:27017/avalon_game?authSource=admin}
       - DB_NAME=${DB_NAME:-avalon_game}
-    ports:
-      - "8001:8001"
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - avalon-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 10s
 
   frontend:
     build:
@@ -42,7 +49,8 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - avalon-network
 
