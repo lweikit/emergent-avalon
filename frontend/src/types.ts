@@ -1,3 +1,16 @@
+export const GamePhase = {
+  LOBBY: "lobby",
+  ROLE_ASSIGNMENT: "role_assignment",
+  MISSION_TEAM_SELECTION: "mission_team_selection",
+  MISSION_VOTING: "mission_voting",
+  VOTE_REVEAL: "vote_reveal",
+  MISSION_EXECUTION: "mission_execution",
+  MISSION_REVEAL: "mission_reveal",
+  LADY_OF_THE_LAKE: "lady_of_the_lake",
+  ASSASSINATION: "assassination",
+  GAME_END: "game_end",
+} as const;
+
 export interface Player {
   id: string;
   name: string;
@@ -38,6 +51,7 @@ export interface VoteRecord {
 export interface Session {
   id: string;
   name: string;
+  code?: string | null;
   phase: string;
   current_mission: number;
   current_leader: number;
@@ -78,4 +92,11 @@ export interface GameState {
   role_info?: RoleInfo;
   lady_of_lake_knowledge?: LadyResult[];
   current_mission_details?: Mission;
+}
+
+export const GOOD_ROLES = ["merlin", "percival", "loyal_servant"];
+
+export interface AxiosErrorResponse {
+  response?: { data?: { detail?: string } };
+  message: string;
 }

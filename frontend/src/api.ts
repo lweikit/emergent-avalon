@@ -8,6 +8,7 @@ interface CreateSessionResponse {
 }
 
 interface JoinSessionResponse {
+  session_id: string;
   player_id: string;
   player_token: string;
 }
@@ -80,6 +81,9 @@ const api = {
 
   endGame: (sessionId: string): Promise<AxiosResponse<void>> =>
     axios.post(`${apiUrl}/end-game`, { session_id: sessionId }),
+
+  leaveSession: (sessionId: string, playerId: string, playerToken: string): Promise<AxiosResponse<void>> =>
+    axios.post(`${apiUrl}/leave-session`, { session_id: sessionId, player_id: playerId, player_token: playerToken }),
 
   getSession: (sessionId: string): Promise<AxiosResponse<Session>> =>
     axios.get(`${apiUrl}/session/${sessionId}`),

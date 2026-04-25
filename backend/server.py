@@ -20,7 +20,8 @@ from models import (
     TeamSelectionRequest, VoteRequest, MissionVoteRequest,
     LadyOfLakeRequest, AssassinationRequest,
     ToggleLadyOfLakeRequest, ToggleMordredRequest, ToggleOberonRequest,
-    RestartGameRequest,
+    RestartGameRequest, LeaveSessionRequest,
+    generate_code,
 )
 from game_logic import initialize_game, process_team_vote, process_mission_vote, advance_vote_reveal, advance_mission_reveal
 from bots import process_bot_actions
@@ -95,7 +96,7 @@ async def _advance_mission_reveal(session_id: str):
         if gs.phase != GamePhase.MISSION_REVEAL:
             return
         advance_mission_reveal(gs)
-        await db.game_sessions.replace_one({"id": session_id}, gs.dict())
+        await db.game_sessions.replace_one({"id": session_id}, gs.model_dump())
     await _broadcast(session_id)
     asyncio.create_task(_delayed_bot_actions(session_id))
 
@@ -110,13 +111,46 @@ async def _advance_vote_reveal(session_id: str):
         if gs.phase != GamePhase.VOTE_REVEAL:
             return
         advance_vote_reveal(gs)
-        await db.game_sessions.replace_one({"id": session_id}, gs.dict())
+        await db.game_sessions.replace_one({"id": session_id}, gs.model_dump())
     await _broadcast(session_id)
     asyncio.create_task(_delayed_bot_actions(session_id))
 
+# ── Lifecycle ───────────────────────────────────────────────────────────
+
+_cleanup_task = None
+
+async def _cleanup_old_sessions():
+    while True:
+        try:
+            cutoff = datetime.utcnow() - timedelta(days=7)
+            old_sessions = await db.game_sessions.find(
+                {"created_at": {"$lt": cutoff}}, {"id": 1}
+            ).to_list(1000)
+            if old_sessions:
+                old_ids = [s["id"] for s in old_sessions]
+                result = await db.game_sessions.delete_many({"created_at": {"$lt": cutoff}})
+                for sid in old_ids:
+                    cleanup_session_tokens(sid)
+                    _cleanup_lock(sid)
+                logger.info("Cleaned up %d old sessions", result.deleted_count)
+        except Exception as e:
+            logger.error("Session cleanup error: %s", e)
+        await asyncio.sleep(6 * 3600)
+
+@asynccontextmanager
+async def _lifespan(app):
+    global _cleanup_task
+    await db.game_sessions.create_index("id", unique=True)
+    await db.game_sessions.create_index("code", unique=True, sparse=True)
+    await db.game_sessions.create_index("created_at")
+    logger.info("MongoDB indexes ensured")
+    _cleanup_task = asyncio.create_task(_cleanup_old_sessions())
+    yield
+    client.close()
+
 # ── App & Router ────────────────────────────────────────────────────────
 
-app = FastAPI(title="Avalon Game API", version="1.0.0")
+app = FastAPI(title="Avalon Game API", version="1.0.0", lifespan=_lifespan)
 app.add_middleware(RateLimitMiddleware, max_requests=200, window_seconds=60)
 
 _cors_origins = (
@@ -133,42 +167,6 @@ app.add_middleware(
 )
 
 api_router = APIRouter(prefix="/api")
-
-# ── Lifecycle ───────────────────────────────────────────────────────────
-
-_cleanup_task = None
-
-async def _cleanup_old_sessions():
-    while True:
-        try:
-            cutoff = datetime.utcnow() - timedelta(days=7)
-            # Find session IDs before deleting so we can clean up tokens/locks
-            old_sessions = await db.game_sessions.find(
-                {"created_at": {"$lt": cutoff}}, {"id": 1}
-            ).to_list(1000)
-            if old_sessions:
-                old_ids = [s["id"] for s in old_sessions]
-                result = await db.game_sessions.delete_many({"created_at": {"$lt": cutoff}})
-                for sid in old_ids:
-                    cleanup_session_tokens(sid)
-                    _cleanup_lock(sid)
-                logger.info("Cleaned up %d old sessions", result.deleted_count)
-        except Exception as e:
-            logger.error("Session cleanup error: %s", e)
-        await asyncio.sleep(6 * 3600)
-
-@app.on_event("startup")
-async def startup_event():
-    global _cleanup_task
-    # Create MongoDB indexes
-    await db.game_sessions.create_index("id", unique=True)
-    await db.game_sessions.create_index("created_at")
-    logger.info("MongoDB indexes ensured")
-    _cleanup_task = asyncio.create_task(_cleanup_old_sessions())
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    client.close()
 
 # ── Health ──────────────────────────────────────────────────────────────
 
@@ -188,19 +186,31 @@ async def root():
 async def api_root():
     return {"message": "Avalon Game API is running", "status": "healthy"}
 
+async def _resolve_session(identifier: str):
+    """Find a session by UUID or short code. Returns the raw document or None."""
+    doc = await db.game_sessions.find_one({"id": identifier})
+    if doc:
+        return doc
+    return await db.game_sessions.find_one({"code": identifier.upper()})
+
 # ── Session management ──────────────────────────────────────────────────
 
 @api_router.post("/create-session")
 async def create_session(request: CreateSessionRequest):
     session = GameSession(name=request.name, players=[Player(name=request.player_name)])
-    await db.game_sessions.insert_one(session.dict())
+    for _ in range(10):
+        code = generate_code()
+        if not await db.game_sessions.find_one({"code": code}):
+            session.code = code
+            break
+    await db.game_sessions.insert_one(session.model_dump())
     await _broadcast(session.id)
     token = issue_token(session.id, session.players[0].id)
     return {"session_id": session.id, "player_id": session.players[0].id, "player_token": token}
 
 @api_router.post("/join-session")
 async def join_session(request: JoinSessionRequest):
-    session = await db.game_sessions.find_one({"id": request.session_id})
+    session = await _resolve_session(request.session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -223,10 +233,34 @@ async def join_session(request: JoinSessionRequest):
         gs.players.append(new_player)
         player_id = new_player.id
 
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+    await db.game_sessions.replace_one({"id": gs.id}, gs.model_dump())
+    await _broadcast(gs.id)
+    token = issue_token(gs.id, player_id)
+    return {"session_id": gs.id, "player_id": player_id, "is_spectator": request.as_spectator, "player_token": token}
+
+@api_router.post("/leave-session")
+async def leave_session(request: LeaveSessionRequest):
+    require_auth(request.session_id, request.player_id, request.player_token)
+
+    async with session_lock(request.session_id):
+        session = await db.game_sessions.find_one({"id": request.session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        gs = GameSession(**session)
+        player = next((p for p in gs.players if p.id == request.player_id), None)
+        if not player:
+            return {"message": "Already removed"}
+
+        if gs.phase == GamePhase.LOBBY or player.is_spectator:
+            gs.players = [p for p in gs.players if p.id != request.player_id]
+        else:
+            player.is_connected = False
+
+        await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
+
     await _broadcast(request.session_id)
-    token = issue_token(request.session_id, player_id)
-    return {"player_id": player_id, "is_spectator": request.as_spectator, "player_token": token}
+    return {"message": "Left session"}
 
 # ── Game start ──────────────────────────────────────────────────────────
 
@@ -244,7 +278,7 @@ async def start_game(request: StartGameRequest):
         raise HTTPException(status_code=400, detail="Game has already started")
 
     initialize_game(gs, fill_bots=False)
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+    await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
     await _broadcast(request.session_id)
     asyncio.create_task(_delayed_bot_actions(request.session_id))
     return {"message": "Game started successfully"}
@@ -260,7 +294,7 @@ async def start_test_game(request: StartGameRequest):
         raise HTTPException(status_code=400, detail="Game has already started")
 
     initialize_game(gs, fill_bots=True)
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+    await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
     await _broadcast(request.session_id)
     asyncio.create_task(_delayed_bot_actions(request.session_id))
     return {"message": "Test game started successfully"}
@@ -299,7 +333,7 @@ async def select_team(request: TeamSelectionRequest):
         cm.votes = {}
         gs.phase = GamePhase.MISSION_VOTING
 
-        await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+        await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
 
     await _broadcast(request.session_id)
     asyncio.create_task(process_bot_actions(request.session_id, db, session_lock, _broadcast))
@@ -331,7 +365,7 @@ async def vote_team(request: VoteRequest):
         if all_voted:
             process_team_vote(gs)
 
-        await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+        await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
 
     await _broadcast(request.session_id)
     if all_voted:
@@ -372,7 +406,7 @@ async def vote_mission(request: MissionVoteRequest):
         if all_voted:
             process_mission_vote(gs)
 
-        await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+        await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
 
     await _broadcast(request.session_id)
     if all_voted:
@@ -424,7 +458,7 @@ async def lady_of_lake(request: LadyOfLakeRequest):
         gs.phase = GamePhase.MISSION_TEAM_SELECTION
         gs.game_log.append(f"{current_player.name} used Lady of the Lake on {target.name}")
 
-        await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+        await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
 
     await _broadcast(request.session_id)
     return {"target_name": target.name, "allegiance": allegiance}
@@ -462,7 +496,7 @@ async def assassinate(request: AssassinationRequest):
             gs.game_log.append(f"Assassination failed! {assassin.name} targeted {target.name} ({target.role}). Good wins!")
 
         gs.phase = GamePhase.GAME_END
-        await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+        await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
 
     await _broadcast(request.session_id)
     return {"success": target.role == Role.MERLIN, "target_name": target.name}
@@ -516,44 +550,35 @@ async def get_session_personalized(session_id: str, player_id: str, player_token
 
 # ── Lobby settings ──────────────────────────────────────────────────────
 
-@api_router.post("/toggle-lady-of-lake")
-async def toggle_lady_of_lake(request: ToggleLadyOfLakeRequest):
-    session = await db.game_sessions.find_one({"id": request.session_id})
+_TOGGLE_FIELDS = {
+    "lady-of-lake": "lady_of_the_lake_enabled",
+    "mordred": "mordred_enabled",
+    "oberon": "oberon_enabled",
+}
+
+async def _toggle_setting(session_id: str, field: str, enabled: bool):
+    session = await db.game_sessions.find_one({"id": session_id})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     gs = GameSession(**session)
     if gs.phase != GamePhase.LOBBY:
         raise HTTPException(status_code=400, detail="Can only change settings in lobby")
-    gs.lady_of_the_lake_enabled = request.enabled
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
-    await _broadcast(request.session_id)
-    return {"lady_of_the_lake_enabled": gs.lady_of_the_lake_enabled}
+    setattr(gs, field, enabled)
+    await db.game_sessions.replace_one({"id": session_id}, gs.model_dump())
+    await _broadcast(session_id)
+    return {field: enabled}
+
+@api_router.post("/toggle-lady-of-lake")
+async def toggle_lady_of_lake(request: ToggleLadyOfLakeRequest):
+    return await _toggle_setting(request.session_id, "lady_of_the_lake_enabled", request.enabled)
 
 @api_router.post("/toggle-mordred")
 async def toggle_mordred(request: ToggleMordredRequest):
-    session = await db.game_sessions.find_one({"id": request.session_id})
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    gs = GameSession(**session)
-    if gs.phase != GamePhase.LOBBY:
-        raise HTTPException(status_code=400, detail="Can only change settings in lobby")
-    gs.mordred_enabled = request.enabled
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
-    await _broadcast(request.session_id)
-    return {"mordred_enabled": gs.mordred_enabled}
+    return await _toggle_setting(request.session_id, "mordred_enabled", request.enabled)
 
 @api_router.post("/toggle-oberon")
 async def toggle_oberon(request: ToggleOberonRequest):
-    session = await db.game_sessions.find_one({"id": request.session_id})
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    gs = GameSession(**session)
-    if gs.phase != GamePhase.LOBBY:
-        raise HTTPException(status_code=400, detail="Can only change settings in lobby")
-    gs.oberon_enabled = request.enabled
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
-    await _broadcast(request.session_id)
-    return {"oberon_enabled": gs.oberon_enabled}
+    return await _toggle_setting(request.session_id, "oberon_enabled", request.enabled)
 
 # ── Game lifecycle ──────────────────────────────────────────────────────
 
@@ -587,7 +612,7 @@ async def restart_game(request: RestartGameRequest):
     gs.vote_history = []
     gs.game_log = []
 
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+    await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
     await _broadcast(request.session_id)
     return {"message": "Game restarted successfully"}
 
@@ -601,7 +626,7 @@ async def end_game(request: RestartGameRequest):
     if not gs.game_result:
         gs.game_result = "ended"
     gs.game_log.append("Game ended manually - all roles revealed!")
-    await db.game_sessions.replace_one({"id": request.session_id}, gs.dict())
+    await db.game_sessions.replace_one({"id": request.session_id}, gs.model_dump())
     await _broadcast(request.session_id)
     return {"message": "Game ended successfully"}
 
@@ -625,6 +650,10 @@ async def _set_player_connected(session_id: str, player_id: str, connected: bool
 async def websocket_endpoint(websocket: WebSocket, session_id: str, player_id: str = None):
     query_params = dict(websocket.query_params)
     player_id = query_params.get("player_id", player_id)
+
+    doc = await _resolve_session(session_id)
+    if doc:
+        session_id = doc["id"]
 
     await manager.connect(websocket, session_id, player_id)
     # Mark player as connected

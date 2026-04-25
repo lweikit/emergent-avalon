@@ -31,7 +31,7 @@ export default function useWebSocket(
   const [gameState, setGameState] = useState<GameState | null>(null);
 
   const connect = useCallback(() => {
-    if (!sessionId || !playerId) return;
+    if (!sessionId) return;
 
     if (ws.current) {
       ws.current.close();
@@ -39,7 +39,9 @@ export default function useWebSocket(
     }
 
     const wsBaseUrl = getWsBaseUrl();
-    const url = `${wsBaseUrl}/api/ws/${sessionId}?player_id=${playerId}`;
+    const url = playerId
+      ? `${wsBaseUrl}/api/ws/${sessionId}?player_id=${playerId}`
+      : `${wsBaseUrl}/api/ws/${sessionId}`;
     const socket = new WebSocket(url);
     ws.current = socket;
 
@@ -68,8 +70,8 @@ export default function useWebSocket(
 
     socket.onclose = (event: CloseEvent) => {
       setIsConnected(false);
-      if (event.code !== 1000 && retryCount.current < 5) {
-        const delay = Math.min(1000 * Math.pow(2, retryCount.current), 10000);
+      if (event.code !== 1000) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount.current), 30000);
         retryCount.current += 1;
         retryTimer.current = setTimeout(connect, delay);
       }

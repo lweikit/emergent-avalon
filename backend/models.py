@@ -2,7 +2,14 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 from enum import Enum
 from datetime import datetime
+import secrets
 import uuid
+
+_CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+def generate_code(length: int = 6) -> str:
+    return "".join(secrets.choice(_CODE_CHARS) for _ in range(length))
 
 
 class GamePhase(str, Enum):
@@ -60,6 +67,7 @@ class Mission(BaseModel):
 class GameSession(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
+    code: Optional[str] = None
     players: List[Player] = []
     phase: GamePhase = GamePhase.LOBBY
     current_mission: int = 0
@@ -146,6 +154,12 @@ class ToggleOberonRequest(BaseModel):
 class ToggleLadyOfLakeRequest(BaseModel):
     session_id: str
     enabled: bool
+
+
+class LeaveSessionRequest(BaseModel):
+    session_id: str
+    player_id: str
+    player_token: str
 
 
 class RestartGameRequest(BaseModel):

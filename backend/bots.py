@@ -72,7 +72,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
             game_session.game_log.append(
                 f"{current_leader.name} (bot) selected team: {[p.name for p in game_session.players if p.id in team]}"
             )
-            await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+            await db.game_sessions.replace_one({"id": session_id}, game_session.model_dump())
             await broadcast_fn(session_id)
 
     # ── Team voting ─────────────────────────────────────────────────
@@ -91,7 +91,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                     if player.id in fm.votes:
                         continue
                     fm.votes[player.id] = await bot_vote_team(fg, player)
-                    await db.game_sessions.replace_one({"id": session_id}, fg.dict())
+                    await db.game_sessions.replace_one({"id": session_id}, fg.model_dump())
 
         # Check if all voted
         async with session_lock(session_id):
@@ -103,7 +103,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                     active = [p for p in fg.players if not p.is_spectator]
                     if len(fm.votes) == len(active):
                         process_team_vote(fg)
-                        await db.game_sessions.replace_one({"id": session_id}, fg.dict())
+                        await db.game_sessions.replace_one({"id": session_id}, fg.model_dump())
                         await broadcast_fn(session_id)
                         # Auto-advance after vote reveal
                         async def _bot_advance_reveal():
@@ -116,7 +116,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                                 if g.phase != GamePhase.VOTE_REVEAL:
                                     return
                                 advance_vote_reveal(g)
-                                await db.game_sessions.replace_one({"id": session_id}, g.dict())
+                                await db.game_sessions.replace_one({"id": session_id}, g.model_dump())
                             await broadcast_fn(session_id)
                             asyncio.create_task(process_bot_actions(session_id, db, session_lock, broadcast_fn))
                         asyncio.create_task(_bot_advance_reveal())
@@ -138,7 +138,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                     if player.id in fm.mission_votes:
                         continue
                     fm.mission_votes[player.id] = await bot_vote_mission(fg, player)
-                    await db.game_sessions.replace_one({"id": session_id}, fg.dict())
+                    await db.game_sessions.replace_one({"id": session_id}, fg.model_dump())
 
         async with session_lock(session_id):
             fresh = await db.game_sessions.find_one({"id": session_id})
@@ -148,7 +148,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                     fm = fg.missions[fg.current_mission]
                     if len(fm.mission_votes) == len(fm.team_members):
                         process_mission_vote(fg)
-                        await db.game_sessions.replace_one({"id": session_id}, fg.dict())
+                        await db.game_sessions.replace_one({"id": session_id}, fg.model_dump())
                         await broadcast_fn(session_id)
                         async def _bot_advance_mission():
                             await asyncio.sleep(5)
@@ -160,7 +160,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                                 if g.phase != GamePhase.MISSION_REVEAL:
                                     return
                                 advance_mission_reveal(g)
-                                await db.game_sessions.replace_one({"id": session_id}, g.dict())
+                                await db.game_sessions.replace_one({"id": session_id}, g.model_dump())
                             await broadcast_fn(session_id)
                             asyncio.create_task(process_bot_actions(session_id, db, session_lock, broadcast_fn))
                         asyncio.create_task(_bot_advance_mission())
@@ -186,7 +186,7 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                         f"Assassination failed! {assassin.name} (bot) killed {target.name} ({target.role}). Good wins!"
                     )
                 game_session.phase = GamePhase.GAME_END
-                await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+                await db.game_sessions.replace_one({"id": session_id}, game_session.model_dump())
                 await broadcast_fn(session_id)
 
     # ── Lady of the Lake (bot holder) ───────────────────────────────
@@ -206,6 +206,6 @@ async def process_bot_actions(session_id: str, db, session_lock, broadcast_fn):
                 game_session.lady_of_the_lake_holder = target.id
                 game_session.phase = GamePhase.MISSION_TEAM_SELECTION
                 game_session.game_log.append(f"{holder.name} (bot) used Lady of the Lake on {target.name}")
-                await db.game_sessions.replace_one({"id": session_id}, game_session.dict())
+                await db.game_sessions.replace_one({"id": session_id}, game_session.model_dump())
                 await broadcast_fn(session_id)
                 asyncio.create_task(process_bot_actions(session_id, db, session_lock, broadcast_fn))
