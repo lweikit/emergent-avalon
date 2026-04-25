@@ -35,44 +35,51 @@ const PHASE_COLORS: Record<string, string> = {
 function MissionCard({ mission, isCurrent }: { mission: Mission; isCurrent: boolean }) {
   const bg =
     mission.result === "success"
-      ? "bg-green-600 border-green-400"
+      ? "bg-green-600 border-green-500 shadow-green-500/40"
       : mission.result === "fail"
-      ? "bg-red-600 border-red-400"
+      ? "bg-red-600 border-red-500 shadow-red-500/40"
       : isCurrent
-      ? "bg-yellow-900/60 border-yellow-400"
-      : "bg-gray-800 border-gray-600";
+      ? "bg-amber-100 border-yellow-400 shadow-yellow-400/30"
+      : "bg-stone-200/80 border-stone-400";
+
+  const textColor = mission.result !== "pending" ? "text-white" : "text-stone-800";
 
   return (
-    <div className={`flex flex-col items-center justify-center rounded-xl border-2 p-3 min-w-[90px] ${bg} ${isCurrent ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-gray-900" : ""}`}>
-      <span className="text-2xl font-black text-white">{mission.number}</span>
-      <span className="text-xs text-gray-300 mt-1">{mission.team_size} players</span>
+    <div className="flex flex-col items-center gap-1.5">
+      <span className="text-[10px] sm:text-xs text-gray-400 font-semibold uppercase tracking-wider">
+        Quest {mission.number}
+      </span>
       {mission.fails_required > 1 && (
-        <span className="text-xs text-red-300">{mission.fails_required} fails</span>
+        <span className="text-[9px] sm:text-[10px] text-red-400 font-bold -mt-1">Two fails required</span>
       )}
+      <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shadow-xl ${bg} ${isCurrent && mission.result === "pending" ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-gray-900" : ""}`}
+        style={{ borderWidth: "3px" }}>
+        <span className={`text-2xl sm:text-3xl font-black ${textColor}`}>{mission.team_size}</span>
+      </div>
       {mission.result !== "pending" && (
-        <span className={`text-sm font-bold mt-1 ${mission.result === "success" ? "text-green-200" : "text-red-200"}`}>
-          {mission.result.toUpperCase()}
-        </span>
-      )}
-      {mission.mission_votes && typeof mission.mission_votes === "object" && "total_votes" in mission.mission_votes && mission.result !== "pending" && (
-        <span className="text-xs text-gray-300">
-          {mission.mission_votes.success_count ?? 0}S / {mission.mission_votes.fail_count ?? 0}F
+        <span className={`text-xs font-bold uppercase ${mission.result === "success" ? "text-green-400" : "text-red-400"}`}>
+          {mission.result}
         </span>
       )}
     </div>
   );
 }
 
-function VoteTrackDot({ filled, danger }: { filled: boolean; danger: boolean }) {
+function VoteTrackDot({ index, filled, danger }: { index: number; filled: boolean; danger: boolean }) {
+  const isFifth = index === 4;
   return (
-    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center transition-all ${
       filled
         ? danger
-          ? "bg-red-500 border-red-400 animate-pulse"
-          : "bg-yellow-500 border-yellow-400"
+          ? "bg-red-600 border-red-400 animate-pulse shadow-lg shadow-red-500/40"
+          : "bg-yellow-600 border-yellow-400 shadow-lg shadow-yellow-500/30"
+        : isFifth
+        ? "bg-gray-800 border-red-500/50"
         : "bg-gray-800 border-gray-600"
     }`}>
-      {filled && <span className="text-white text-xs font-bold">X</span>}
+      <span className={`text-sm sm:text-base font-black ${filled ? "text-white" : isFifth ? "text-red-400/60" : "text-gray-500"}`}>
+        {index + 1}
+      </span>
     </div>
   );
 }
@@ -309,39 +316,38 @@ export default function SpectatorBoard({ gameState, isConnected, onLeave }: Spec
       </div>
 
       {/* Main content */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: 0 }}>
-        {/* Left column: Missions + Vote Track + Vote History */}
-        <div className="flex flex-col gap-6">
-          {/* Mission Track */}
+      <div className="flex-1 max-w-7xl mx-auto w-full px-6 py-6 flex flex-col gap-6" style={{ minHeight: 0 }}>
+        {/* Hero: Mission Track + Vote Track centered */}
+        <div className="bg-gray-800 rounded-xl p-6 sm:p-8 border border-gray-700">
           {session.missions.length > 0 && (
-            <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Missions</h2>
-              <div className="flex gap-3 justify-center">
-                {session.missions.map((m, i) => (
-                  <MissionCard key={i} mission={m} isCurrent={i === session.current_mission} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Vote Track */}
-          <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">
-              Vote Track
-              {session.vote_track >= 4 && <span className="ml-2 text-red-400 text-xs animate-pulse">DANGER</span>}
-            </h2>
-            <div className="flex gap-3 justify-center">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <VoteTrackDot key={i} filled={i < session.vote_track} danger={session.vote_track >= 4} />
+            <div className="flex gap-6 sm:gap-10 justify-center items-end mb-8">
+              {session.missions.map((m, i) => (
+                <MissionCard key={i} mission={m} isCurrent={i === session.current_mission} />
               ))}
             </div>
-            <p className="text-xs text-gray-500 text-center mt-2">5 rejections = Evil wins</p>
+          )}
+          <div className="flex items-center justify-center gap-6">
+            <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">Vote Track</span>
+            <div className="flex gap-2 sm:gap-3">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <VoteTrackDot key={i} index={i} filled={i < session.vote_track} danger={session.vote_track >= 4} />
+              ))}
+            </div>
+            {session.vote_track >= 4 && <span className="text-red-400 text-xs animate-pulse font-bold">DANGER</span>}
           </div>
+        </div>
 
+        {/* Phase display centered */}
+        <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 flex items-center justify-center min-h-[160px]">
+          <PhaseDisplay session={session} players={activePlayers} />
+        </div>
+
+        {/* Bottom row: Vote History + Game Log + Players */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
           {/* Vote History */}
-          {session.vote_history && session.vote_history.length > 0 && (
-            <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 flex-1 min-h-0 flex flex-col">
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Vote History</h2>
+          <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 flex flex-col">
+            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Vote History</h2>
+            {session.vote_history && session.vote_history.length > 0 ? (
               <div className="overflow-y-auto flex-1 space-y-2">
                 {session.vote_history.map((vote, i) => (
                   <div key={i} className="bg-gray-900 rounded-lg p-3">
@@ -361,20 +367,15 @@ export default function SpectatorBoard({ gameState, isConnected, onLeave }: Spec
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Center column: Phase display */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 flex-1 flex items-center justify-center">
-            <PhaseDisplay session={session} players={activePlayers} />
+            ) : (
+              <p className="text-sm text-gray-600 italic">No votes yet</p>
+            )}
           </div>
 
           {/* Game Log */}
-          <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 max-h-60">
+          <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 flex flex-col">
             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Game Log</h2>
-            <div ref={logRef} className="overflow-y-auto max-h-40 space-y-1">
+            <div ref={logRef} className="overflow-y-auto flex-1 space-y-1">
               {session.game_log && session.game_log.length > 0 ? (
                 session.game_log.map((log, i) => (
                   <p key={i} className="text-sm text-gray-400 font-mono">{log}</p>
@@ -384,33 +385,33 @@ export default function SpectatorBoard({ gameState, isConnected, onLeave }: Spec
               )}
             </div>
           </div>
-        </div>
 
-        {/* Right column: Players */}
-        <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 flex flex-col">
-          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">
-            Players ({activePlayers.length})
-          </h2>
-          <div className="space-y-2 flex-1 overflow-y-auto">
-            {activePlayers.map((player) => (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                isOnTeam={teamMemberIds.has(player.id)}
-                isGameEnd={session.phase === GamePhase.GAME_END}
-              />
-            ))}
-          </div>
-          {session.players.filter((p) => p.is_spectator).length > 0 && (
-            <div className="mt-4 pt-3 border-t border-gray-700">
-              <h3 className="text-xs text-gray-600 uppercase mb-2">Spectators</h3>
-              <div className="flex flex-wrap gap-2">
-                {session.players.filter((p) => p.is_spectator).map((p) => (
-                  <span key={p.id} className="text-xs text-gray-500 bg-gray-900 px-2 py-1 rounded">{p.name}</span>
-                ))}
-              </div>
+          {/* Players */}
+          <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 flex flex-col">
+            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">
+              Players ({activePlayers.length})
+            </h2>
+            <div className="space-y-2 flex-1 overflow-y-auto">
+              {activePlayers.map((player) => (
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  isOnTeam={teamMemberIds.has(player.id)}
+                  isGameEnd={session.phase === GamePhase.GAME_END}
+                />
+              ))}
             </div>
-          )}
+            {session.players.filter((p) => p.is_spectator).length > 0 && (
+              <div className="mt-4 pt-3 border-t border-gray-700">
+                <h3 className="text-xs text-gray-600 uppercase mb-2">Spectators</h3>
+                <div className="flex flex-wrap gap-2">
+                  {session.players.filter((p) => p.is_spectator).map((p) => (
+                    <span key={p.id} className="text-xs text-gray-500 bg-gray-900 px-2 py-1 rounded">{p.name}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -124,22 +124,33 @@ export default function GameBoard({ gameState, playerId, playerToken, isConnecte
             {/* Missions grid */}
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 sm:p-6">
               <h2 className="text-lg font-bold mb-4 text-white">Missions</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-4">
-                {session.missions.map((mission, index) => (
-                  <div key={index} className={`p-2 sm:p-3 rounded-lg text-center border-2 text-xs sm:text-sm ${
-                    index === session.current_mission ? "bg-yellow-900/40 border-yellow-500"
-                    : mission.result === "success" ? "bg-green-900/40 border-green-500"
-                    : mission.result === "fail" ? "bg-red-900/40 border-red-500"
-                    : "bg-gray-700 border-gray-600"
-                  }`}>
-                    <div className="font-bold text-white">#{mission.number}</div>
-                    <div className="text-xs text-gray-400">{mission.team_size} players</div>
-                    <div className="text-xs text-gray-400">{mission.fails_required} fail{mission.fails_required > 1 ? "s" : ""}</div>
-                    {mission.result !== "pending" && (
-                      <div className={`text-xs font-bold ${mission.result === "success" ? "text-green-400" : "text-red-400"}`}>{mission.result.toUpperCase()}</div>
-                    )}
-                  </div>
-                ))}
+              <div className="flex gap-4 sm:gap-5 justify-center items-start">
+                {session.missions.map((mission, index) => {
+                  const isCurrent = index === session.current_mission;
+                  const bg =
+                    mission.result === "success" ? "bg-green-600 border-green-500"
+                    : mission.result === "fail" ? "bg-red-600 border-red-500"
+                    : isCurrent ? "bg-amber-100 border-yellow-400"
+                    : "bg-stone-200 border-stone-400";
+                  const textColor = mission.result !== "pending" ? "text-white" : "text-stone-800";
+                  return (
+                    <div key={index} className="flex flex-col items-center gap-1">
+                      <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Quest {mission.number}</span>
+                      {mission.fails_required > 1 && (
+                        <span className="text-[9px] text-red-400 font-bold -mt-1">2 fails</span>
+                      )}
+                      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg ${bg} ${isCurrent && mission.result === "pending" ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-gray-900" : ""}`}
+                        style={{ borderWidth: "3px" }}>
+                        <span className={`text-lg sm:text-xl font-black ${textColor}`}>{mission.team_size}</span>
+                      </div>
+                      {mission.result !== "pending" && (
+                        <span className={`text-[10px] font-bold ${mission.result === "success" ? "text-green-400" : "text-red-400"}`}>
+                          {mission.result}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

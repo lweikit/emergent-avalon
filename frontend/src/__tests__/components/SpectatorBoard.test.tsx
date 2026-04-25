@@ -410,14 +410,14 @@ describe("SpectatorBoard", () => {
   describe("mission cards", () => {
     it("renders all 5 mission cards", () => {
       render(<SpectatorBoard gameState={makeGameState()} {...defaultProps} />);
-      expect(screen.getByText("1")).toBeInTheDocument();
-      expect(screen.getByText("2")).toBeInTheDocument();
-      expect(screen.getByText("3")).toBeInTheDocument();
-      expect(screen.getByText("4")).toBeInTheDocument();
-      expect(screen.getByText("5")).toBeInTheDocument();
+      expect(screen.getByText("Quest 1")).toBeInTheDocument();
+      expect(screen.getByText("Quest 2")).toBeInTheDocument();
+      expect(screen.getByText("Quest 3")).toBeInTheDocument();
+      expect(screen.getByText("Quest 4")).toBeInTheDocument();
+      expect(screen.getByText("Quest 5")).toBeInTheDocument();
     });
 
-    it("shows SUCCESS/FAIL labels on completed missions", () => {
+    it("shows success/fail labels on completed missions", () => {
       const gameState = makeGameState({
         missions: [
           makeMission({ number: 1, result: "success" }),
@@ -428,8 +428,8 @@ describe("SpectatorBoard", () => {
         ],
       });
       render(<SpectatorBoard gameState={gameState} {...defaultProps} />);
-      expect(screen.getByText("SUCCESS")).toBeInTheDocument();
-      expect(screen.getByText("FAIL")).toBeInTheDocument();
+      expect(screen.getByText("success")).toBeInTheDocument();
+      expect(screen.getByText("fail")).toBeInTheDocument();
     });
   });
 
@@ -437,7 +437,6 @@ describe("SpectatorBoard", () => {
     it("shows vote track section", () => {
       render(<SpectatorBoard gameState={makeGameState()} {...defaultProps} />);
       expect(screen.getByText("Vote Track")).toBeInTheDocument();
-      expect(screen.getByText("5 rejections = Evil wins")).toBeInTheDocument();
     });
 
     it("shows DANGER label when vote track is >= 4", () => {

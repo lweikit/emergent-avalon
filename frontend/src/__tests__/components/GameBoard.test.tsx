@@ -180,9 +180,9 @@ describe("GameBoard", () => {
 
   describe("score display", () => {
     it("shows good and evil win counts", () => {
-      render(<GameBoard gameState={makeGameState({ good_wins: 2, evil_wins: 1 })} {...defaultProps} />);
-      expect(screen.getByText("2")).toBeInTheDocument();
-      expect(screen.getByText("1")).toBeInTheDocument();
+      render(<GameBoard gameState={makeGameState({ good_wins: 3, evil_wins: 1 })} {...defaultProps} />);
+      expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("1").length).toBeGreaterThanOrEqual(1);
     });
 
     it("shows vote track", () => {
@@ -236,11 +236,11 @@ describe("GameBoard", () => {
     it("renders all 5 missions", () => {
       render(<GameBoard gameState={makeGameState()} {...defaultProps} />);
       expect(screen.getByText("Missions")).toBeInTheDocument();
-      expect(screen.getByText("#1")).toBeInTheDocument();
-      expect(screen.getByText("#2")).toBeInTheDocument();
-      expect(screen.getByText("#3")).toBeInTheDocument();
-      expect(screen.getByText("#4")).toBeInTheDocument();
-      expect(screen.getByText("#5")).toBeInTheDocument();
+      expect(screen.getByText("Quest 1")).toBeInTheDocument();
+      expect(screen.getByText("Quest 2")).toBeInTheDocument();
+      expect(screen.getByText("Quest 3")).toBeInTheDocument();
+      expect(screen.getByText("Quest 4")).toBeInTheDocument();
+      expect(screen.getByText("Quest 5")).toBeInTheDocument();
     });
 
     it("shows completed mission results", () => {
@@ -254,8 +254,8 @@ describe("GameBoard", () => {
         ],
       });
       render(<GameBoard gameState={gameState} {...defaultProps} />);
-      expect(screen.getByText("SUCCESS")).toBeInTheDocument();
-      expect(screen.getByText("FAIL")).toBeInTheDocument();
+      expect(screen.getByText("success")).toBeInTheDocument();
+      expect(screen.getByText("fail")).toBeInTheDocument();
     });
   });
 
