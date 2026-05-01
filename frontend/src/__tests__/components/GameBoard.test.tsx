@@ -192,22 +192,33 @@ describe("GameBoard", () => {
   });
 
   describe("role info display", () => {
-    it("shows role name", () => {
+    it("hides role info by default", () => {
       render(<GameBoard gameState={makeGameState()} {...defaultProps} />);
+      expect(screen.getByText("Your Role: Hidden")).toBeInTheDocument();
+      expect(screen.queryByText("Your Role: MERLIN")).not.toBeInTheDocument();
+      expect(screen.queryByText("Knows all evil players")).not.toBeInTheDocument();
+    });
+
+    it("shows role info when Show button is clicked", async () => {
+      render(<GameBoard gameState={makeGameState()} {...defaultProps} />);
+      const user = userEvent.setup();
+      await user.click(screen.getByText("Show"));
       expect(screen.getByText("Your Role: MERLIN")).toBeInTheDocument();
-    });
-
-    it("shows team affiliation", () => {
-      render(<GameBoard gameState={makeGameState()} {...defaultProps} />);
       expect(screen.getByText("GOOD")).toBeInTheDocument();
-    });
-
-    it("shows role description", () => {
-      render(<GameBoard gameState={makeGameState()} {...defaultProps} />);
       expect(screen.getByText("Knows all evil players")).toBeInTheDocument();
     });
 
-    it("shows visible players when role sees others", () => {
+    it("hides role info again when Hide button is clicked", async () => {
+      render(<GameBoard gameState={makeGameState()} {...defaultProps} />);
+      const user = userEvent.setup();
+      await user.click(screen.getByText("Show"));
+      expect(screen.getByText("Your Role: MERLIN")).toBeInTheDocument();
+      await user.click(screen.getByText("Hide"));
+      expect(screen.getByText("Your Role: Hidden")).toBeInTheDocument();
+      expect(screen.queryByText("Knows all evil players")).not.toBeInTheDocument();
+    });
+
+    it("shows visible players when role sees others and revealed", async () => {
       const gameState = makeGameState({}, {}, {
         role: "merlin",
         team: "good",
@@ -215,12 +226,14 @@ describe("GameBoard", () => {
         sees: [{ name: "Bob", role: "assassin" }, { name: "Carol", role: "morgana" }],
       });
       render(<GameBoard gameState={gameState} {...defaultProps} />);
+      const user = userEvent.setup();
+      await user.click(screen.getByText("Show"));
       expect(screen.getByText("You can see:")).toBeInTheDocument();
       expect(screen.getByText("Bob (assassin)")).toBeInTheDocument();
       expect(screen.getByText("Carol (morgana)")).toBeInTheDocument();
     });
 
-    it("shows evil team styling for evil roles", () => {
+    it("shows evil team styling for evil roles when revealed", async () => {
       const gameState = makeGameState({}, {}, {
         role: "assassin",
         team: "evil",
@@ -228,6 +241,8 @@ describe("GameBoard", () => {
         sees: [],
       });
       render(<GameBoard gameState={gameState} {...defaultProps} />);
+      const user = userEvent.setup();
+      await user.click(screen.getByText("Show"));
       expect(screen.getByText("EVIL")).toBeInTheDocument();
     });
   });
@@ -620,7 +635,7 @@ describe("GameBoard", () => {
   });
 
   describe("lady of the lake knowledge display", () => {
-    it("shows Lady of the Lake knowledge when available", () => {
+    it("shows Lady of the Lake knowledge when available and role revealed", async () => {
       const gameState: GameState = {
         ...makeGameState(),
         lady_of_lake_knowledge: [
@@ -629,6 +644,8 @@ describe("GameBoard", () => {
         ],
       };
       render(<GameBoard gameState={gameState} {...defaultProps} />);
+      const user = userEvent.setup();
+      await user.click(screen.getByText("Show"));
       expect(screen.getByText("Lady of the Lake Knowledge:")).toBeInTheDocument();
       expect(screen.getByText("Bob: GOOD")).toBeInTheDocument();
       expect(screen.getByText("Carol: EVIL")).toBeInTheDocument();

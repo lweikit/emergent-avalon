@@ -21,6 +21,7 @@ export default function GameBoard({ gameState, playerId, playerToken, isConnecte
   const currentLeader = session?.players?.find((p) => p.is_leader);
 
   const [selectedTeam, setSelectedTeam] = useState<string[]>([]);
+  const [showRole, setShowRole] = useState(false);
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
   const [showVoteHistory, setShowVoteHistory] = useState(false);
   const [showGameLog, setShowGameLog] = useState(false);
@@ -93,30 +94,44 @@ export default function GameBoard({ gameState, playerId, playerToken, isConnecte
             {/* Role info */}
             {roleInfo && (
               <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-bold mb-4 text-white">Your Role: {roleInfo.role.replace("_", " ").toUpperCase()}</h2>
-                <div className={`p-4 rounded-lg ${roleInfo.team === "good" ? "bg-blue-900/30 border-l-4 border-blue-500" : "bg-red-900/30 border-l-4 border-red-500"}`}>
-                  <p className="font-medium mb-2 text-sm text-gray-300">Team: <span className={roleInfo.team === "good" ? "text-blue-400" : "text-red-400"}>{roleInfo.team.toUpperCase()}</span></p>
-                  <p className="text-sm text-gray-400 mb-3">{roleInfo.description}</p>
-                  {roleInfo.sees?.length > 0 && (
-                    <div>
-                      <p className="font-medium text-sm mb-2 text-gray-300">You can see:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {roleInfo.sees.map((s, i) => <span key={i} className="bg-gray-700 px-2 py-1 rounded text-xs text-gray-300">{s.name} ({s.role})</span>)}
-                      </div>
-                    </div>
-                  )}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base sm:text-lg font-bold text-white">{showRole ? `Your Role: ${roleInfo.role.replace("_", " ").toUpperCase()}` : "Your Role: Hidden"}</h2>
+                  <button
+                    onClick={() => setShowRole((v) => !v)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors min-h-[36px] bg-gray-700 hover:bg-gray-600 text-gray-300"
+                  >
+                    {showRole ? "Hide" : "Show"}
+                  </button>
                 </div>
-                {gameState?.lady_of_lake_knowledge && gameState.lady_of_lake_knowledge.length > 0 && (
-                  <div className="mt-4 p-4 bg-yellow-900/20 border-l-4 border-yellow-500 rounded-lg">
-                    <h3 className="font-bold text-yellow-300 mb-2 text-sm">Lady of the Lake Knowledge:</h3>
-                    <div className="space-y-2">
-                      {gameState.lady_of_lake_knowledge.map((k, i) => (
-                        <span key={i} className={`inline-block px-3 py-1 rounded-lg text-sm font-medium mr-2 ${k.allegiance === "good" ? "bg-blue-600 text-white" : "bg-red-600 text-white"}`}>
-                          {k.target_name}: {k.allegiance.toUpperCase()}
-                        </span>
-                      ))}
+                {showRole ? (
+                  <>
+                    <div className={`p-4 rounded-lg ${roleInfo.team === "good" ? "bg-blue-900/30 border-l-4 border-blue-500" : "bg-red-900/30 border-l-4 border-red-500"}`}>
+                      <p className="font-medium mb-2 text-sm text-gray-300">Team: <span className={roleInfo.team === "good" ? "text-blue-400" : "text-red-400"}>{roleInfo.team.toUpperCase()}</span></p>
+                      <p className="text-sm text-gray-400 mb-3">{roleInfo.description}</p>
+                      {roleInfo.sees?.length > 0 && (
+                        <div>
+                          <p className="font-medium text-sm mb-2 text-gray-300">You can see:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {roleInfo.sees.map((s, i) => <span key={i} className="bg-gray-700 px-2 py-1 rounded text-xs text-gray-300">{s.name} ({s.role})</span>)}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                    {gameState?.lady_of_lake_knowledge && gameState.lady_of_lake_knowledge.length > 0 && (
+                      <div className="mt-4 p-4 bg-yellow-900/20 border-l-4 border-yellow-500 rounded-lg">
+                        <h3 className="font-bold text-yellow-300 mb-2 text-sm">Lady of the Lake Knowledge:</h3>
+                        <div className="space-y-2">
+                          {gameState.lady_of_lake_knowledge.map((k, i) => (
+                            <span key={i} className={`inline-block px-3 py-1 rounded-lg text-sm font-medium mr-2 ${k.allegiance === "good" ? "bg-blue-600 text-white" : "bg-red-600 text-white"}`}>
+                              {k.target_name}: {k.allegiance.toUpperCase()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">Tap &ldquo;Show&rdquo; to reveal your role info</p>
                 )}
               </div>
             )}
