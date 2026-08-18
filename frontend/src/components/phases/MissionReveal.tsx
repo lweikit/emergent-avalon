@@ -10,11 +10,11 @@ export default function MissionReveal({ session, currentMission }: PhaseProps) {
         Mission {currentMission.result === "success" ? "SUCCESS" : "FAILED"}
       </div>
       {currentMission.mission_votes && (
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-300">
           {currentMission.mission_votes.success_count ?? 0} success, {currentMission.mission_votes.fail_count ?? 0} fail
         </p>
       )}
-      <p className="text-xs text-gray-500">Advancing in a few seconds...</p>
+      <p className="text-xs text-gray-400">Advancing in a few seconds...</p>
     </div>
   );
 }

@@ -1,6 +1,5 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+/* Tailwind's layers are injected once, by index.css. Re-importing them here
+   emitted the whole reset and utility layer a second time. */
 
 /* Smooth transitions — hover transform only on non-touch devices */
 button {
@@ -18,37 +17,49 @@ button:active {
   transform: scale(0.97);
 }
 
-/* Custom focus styles */
-button:focus,
-input:focus,
-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+  button:hover,
+  button:active {
+    transform: none;
+  }
 }
 
-/* Prevent iOS zoom on input focus */
-input, select, textarea {
-  font-size: 16px !important;
+/* Focus ring: :focus-visible so it only appears for keyboard navigation, and at
+   full opacity so it's actually visible against the gray-800 panels. The dark
+   inset keeps it legible on top of the colored action buttons too. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #111827, 0 0 0 5px #60a5fa;
+}
+
+/* Fallback for browsers without :focus-visible support */
+@supports not selector(:focus-visible) {
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #111827, 0 0 0 5px #60a5fa;
+  }
+}
+
+/* iOS zooms the viewport when a focused input's text is under 16px. Inputs are
+   left at the browser default size rather than being given a Tailwind text-*
+   class, so this needs no !important to win. */
+input,
+select,
+textarea {
+  font-size: 16px;
 }
 
 /* Safe area insets for notched phones */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-/* Custom scrollbar — only on desktop */
-@media (hover: hover) {
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #f1f1f1;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #555;
-  }
 }

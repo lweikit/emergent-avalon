@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* The whole app is a dark UI. Declaring color-scheme lets the browser render
+   native chrome to match -- scrollbars, form-control internals, autofill and
+   text-selection colors -- instead of defaulting to their light-mode versions. */
+:root {
+    color-scheme: dark;
+}
+
 body {
     margin: 0;
     background: linear-gradient(to bottom right, #581c87, #1e3a8a);

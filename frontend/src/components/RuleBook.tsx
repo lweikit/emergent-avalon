@@ -26,15 +26,21 @@ export default function RuleBook() {
   return (
     <div className="w-full">
       <button
+        type="button"
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls="rulebook-panel"
         className="w-full text-left px-4 py-3 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg text-white text-sm font-medium transition-colors min-h-[48px] flex items-center justify-between"
       >
         <span>{open ? "Hide" : "Show"} Rules & Characters</span>
-        <span className="text-xs">{open ? "▲" : "▼"}</span>
+        <span className="text-xs" aria-hidden="true">{open ? "▲" : "▼"}</span>
       </button>
 
       {open && (
-        <div className="mt-2 bg-white rounded-xl shadow-2xl p-4 sm:p-6 space-y-6 text-sm">
+        /* text-gray-800 is load-bearing: this is a light panel inside screens
+           whose root sets text-white (GameBoard), and without an explicit color
+           every unstyled text node in here inherits white onto white. */
+        <div id="rulebook-panel" className="mt-2 bg-white text-gray-800 rounded-xl shadow-2xl p-4 sm:p-6 space-y-6 text-sm">
           <div>
             <h3 className="font-bold text-gray-800 mb-3">How to Play</h3>
             <div className="space-y-2">
@@ -71,7 +77,7 @@ export default function RuleBook() {
             <div className="overflow-x-auto">
               <table className="text-xs w-full">
                 <thead>
-                  <tr className="bg-gray-100">
+                  <tr className="bg-gray-100 text-gray-800">
                     <th className="p-2 text-left">Players</th>
                     <th className="p-2">M1</th><th className="p-2">M2</th><th className="p-2">M3</th><th className="p-2">M4</th><th className="p-2">M5</th>
                     <th className="p-2">Good</th><th className="p-2">Evil</th>

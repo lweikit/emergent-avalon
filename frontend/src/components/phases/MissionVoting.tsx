@@ -14,7 +14,7 @@ export default function MissionVoting({ session, currentMission, currentPlayer, 
         <h4 className="font-semibold mb-2 text-gray-300">Votes:</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {session.players.filter((p) => !p.is_spectator).map((player) => (
-            <div key={player.id} className={`p-2 rounded border text-sm ${hasVoted(player.id, currentMission.votes) ? "bg-blue-900/40 border-blue-500 text-blue-300" : "bg-gray-700 border-gray-600 text-gray-300"}`}>
+            <div key={player.id} className={`p-2 rounded border text-sm ${hasVoted(player.id, currentMission.votes) ? "bg-blue-900/40 border-blue-500 text-blue-200" : "bg-gray-700 border-gray-600 text-gray-200"}`}>
               <span className="font-medium">{player.name}</span>
               {hasVoted(player.id, currentMission.votes) && <span className="ml-2 text-xs">Voted</span>}
             </div>
