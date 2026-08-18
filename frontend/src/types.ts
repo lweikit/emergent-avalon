@@ -96,6 +96,20 @@ export interface GameState {
 
 export const GOOD_ROLES = ["merlin", "percival", "loyal_servant"];
 
+/**
+ * How many optional evil roles (Mordred, Oberon) a player count can hold.
+ *
+ * Mordred and Oberon are only ever dealt in place of a Minion, so the number of
+ * interchangeable evil slots in the role config is a hard ceiling. Mirrors
+ * optional_evil_slots() in backend/game_logic.py, which is authoritative -- this
+ * copy exists so the lobby can avoid offering a toggle that cannot apply.
+ */
+export function optionalEvilSlots(playerCount: number): number {
+  if (playerCount >= 10) return 2;
+  if (playerCount >= 7) return 1;
+  return 0;
+}
+
 export interface AxiosErrorResponse {
   response?: { data?: { detail?: string } };
   message: string;

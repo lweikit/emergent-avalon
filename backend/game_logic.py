@@ -7,8 +7,57 @@ from models import (
 )
 
 
+# Evil roles that occupy an interchangeable "flexible" slot. Swapping between
+# them never changes how many evil players there are, only which evil role sits
+# in the slot -- so the good/evil ratio for a given player count is preserved.
+OPTIONAL_EVIL_ROLES = (Role.MORDRED, Role.OBERON)
+_FLEXIBLE_EVIL_ROLES = (Role.MINION,) + OPTIONAL_EVIL_ROLES
+
+
+def optional_evil_slots(player_count: int) -> int:
+    """How many optional evil roles a given player count can accommodate.
+
+    Mordred and Oberon can only be dealt in place of a Minion, so the number of
+    flexible evil slots in the base config is a hard ceiling. 5-6 players have
+    none, 7-9 have one, 10 has two.
+    """
+    if player_count not in ROLE_CONFIGS:
+        return 0
+    return sum(1 for role in ROLE_CONFIGS[player_count] if role in _FLEXIBLE_EVIL_ROLES)
+
+
+def _apply_optional_roles(roles: List[Role], game_session: GameSession) -> List[Role]:
+    """Make the lobby's Mordred/Oberon toggles authoritative.
+
+    The base configs in ROLE_CONFIGS ship Oberon at 7 and Mordred at 9+, which
+    used to mean those roles appeared regardless of the lobby toggles. Here the
+    toggles decide: every flexible evil slot is filled from the enabled optional
+    roles first, and anything left over falls back to Minion. Requests that
+    don't fit the available slots are dropped rather than distorting the
+    good/evil ratio -- optional_evil_slots() is what the lobby uses to avoid
+    offering a toggle that cannot apply.
+    """
+    slots = [i for i, role in enumerate(roles) if role in _FLEXIBLE_EVIL_ROLES]
+    if not slots:
+        return roles
+
+    requested = [
+        role
+        for role, enabled in (
+            (Role.MORDRED, game_session.mordred_enabled),
+            (Role.OBERON, game_session.oberon_enabled),
+        )
+        if enabled
+    ]
+
+    for position, index in enumerate(slots):
+        roles[index] = requested[position] if position < len(requested) else Role.MINION
+
+    return roles
+
+
 def assign_roles(players: List[Player], game_session: GameSession = None) -> List[Player]:
-    """Assign roles to players based on player count and dynamic balancing."""
+    """Assign roles to players based on player count and the lobby's role toggles."""
     player_count = len(players)
     if player_count < 5:
         raise ValueError(f"Invalid player count: {player_count}")
@@ -27,17 +76,10 @@ def assign_roles(players: List[Player], game_session: GameSession = None) -> Lis
     else:
         roles = ROLE_CONFIGS[player_count].copy()
 
-    # Optional dynamic balancing for 7+ players
-    if player_count >= 7 and game_session:
-        total_games = game_session.good_total_wins + game_session.evil_total_wins
-        if total_games >= 3:
-            good_win_rate = game_session.good_total_wins / total_games
-            if good_win_rate > 0.7 and game_session.mordred_enabled:
-                if Role.MINION in roles and Role.MORDRED not in roles:
-                    roles[roles.index(Role.MINION)] = Role.MORDRED
-            elif good_win_rate < 0.3 and game_session.oberon_enabled:
-                if Role.MINION in roles and Role.OBERON not in roles:
-                    roles[roles.index(Role.MINION)] = Role.OBERON
+    # The lobby's Mordred/Oberon toggles decide which optional evil roles are in
+    # play. Without a session (direct calls in tests) the base config stands.
+    if game_session:
+        roles = _apply_optional_roles(roles, game_session)
 
     roles = roles[:player_count]
     random.shuffle(roles)

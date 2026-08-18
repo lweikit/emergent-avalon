@@ -41,6 +41,19 @@ function makeSession(overrides: Partial<Session> = {}): Session {
   };
 }
 
+// Mordred/Oberon/Lady only apply from 7 players up, so the lobby disables those
+// toggles below that. Tests that exercise toggling need a full table.
+function makePlayer(id: string, name: string) {
+  return { id, name, role: null, is_leader: false, is_connected: true, lady_of_the_lake: false, is_bot: false, is_spectator: false };
+}
+
+function makeSevenPlayerSession(overrides: Partial<Session> = {}): Session {
+  return makeSession({
+    players: ["Alice", "Bob", "Cara", "Dan", "Eve", "Finn", "Gia"].map((n, i) => makePlayer(`p${i + 1}`, n)),
+    ...overrides,
+  });
+}
+
 describe("Lobby", () => {
   const defaultProps = {
     playerId: "p1",
@@ -193,14 +206,14 @@ describe("Lobby", () => {
     });
 
     it("shows Mordred as On when enabled", () => {
-      render(<Lobby session={makeSession({ mordred_enabled: true })} {...defaultProps} />);
+      render(<Lobby session={makeSevenPlayerSession({ mordred_enabled: true })} {...defaultProps} />);
       const mordredSection = screen.getByText("Mordred").closest("div")!.parentElement!;
       expect(mordredSection.querySelector("button")).toHaveTextContent("On");
     });
 
     it("calls toggleMordred API when clicked", async () => {
       mockedApi.toggleMordred.mockResolvedValueOnce({ data: undefined } as any);
-      render(<Lobby session={makeSession({ mordred_enabled: false })} {...defaultProps} />);
+      render(<Lobby session={makeSevenPlayerSession({ mordred_enabled: false })} {...defaultProps} />);
       const user = userEvent.setup();
 
       const mordredSection = screen.getByText("Mordred").closest("div")!.parentElement!;
@@ -214,7 +227,7 @@ describe("Lobby", () => {
 
     it("calls toggleOberon API when clicked", async () => {
       mockedApi.toggleOberon.mockResolvedValueOnce({ data: undefined } as any);
-      render(<Lobby session={makeSession({ oberon_enabled: true })} {...defaultProps} />);
+      render(<Lobby session={makeSevenPlayerSession({ oberon_enabled: true })} {...defaultProps} />);
       const user = userEvent.setup();
 
       const oberonSection = screen.getByText("Oberon").closest("div")!.parentElement!;
@@ -228,7 +241,7 @@ describe("Lobby", () => {
 
     it("calls toggleLadyOfLake API when clicked", async () => {
       mockedApi.toggleLadyOfLake.mockResolvedValueOnce({ data: undefined } as any);
-      render(<Lobby session={makeSession({ lady_of_the_lake_enabled: false })} {...defaultProps} />);
+      render(<Lobby session={makeSevenPlayerSession({ lady_of_the_lake_enabled: false })} {...defaultProps} />);
       const user = userEvent.setup();
 
       const ladySection = screen.getByText("Lady of the Lake").closest("div")!.parentElement!;
@@ -273,7 +286,7 @@ describe("Lobby", () => {
         message: "Network Error",
       });
 
-      render(<Lobby session={makeSession()} {...defaultProps} />);
+      render(<Lobby session={makeSevenPlayerSession()} {...defaultProps} />);
       const user = userEvent.setup();
 
       const mordredSection = screen.getByText("Mordred").closest("div")!.parentElement!;
@@ -282,6 +295,44 @@ describe("Lobby", () => {
       await waitFor(() => {
         expect(screen.getByText("Action failed")).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("optional role availability", () => {
+    it("disables Mordred, Oberon and Lady below 7 players", () => {
+      render(<Lobby session={makeSession()} {...defaultProps} />);
+      for (const name of ["Mordred", "Oberon", "Lady of the Lake"]) {
+        expect(screen.getByRole("switch", { name })).toBeDisabled();
+      }
+      expect(screen.getAllByText("Needs 7+ players").length).toBe(3);
+    });
+
+    it("enables them at 7 players", () => {
+      render(<Lobby session={makeSevenPlayerSession()} {...defaultProps} />);
+      for (const name of ["Mordred", "Oberon", "Lady of the Lake"]) {
+        expect(screen.getByRole("switch", { name })).toBeEnabled();
+      }
+    });
+
+    it("blocks Oberon when Mordred already holds the only optional evil slot", () => {
+      render(<Lobby session={makeSevenPlayerSession({ mordred_enabled: true })} {...defaultProps} />);
+      expect(screen.getByRole("switch", { name: "Oberon" })).toBeDisabled();
+      expect(
+        screen.getByText(/Only one optional evil role fits at 7 players/)
+      ).toBeInTheDocument();
+    });
+
+    it("allows both at 10 players", () => {
+      const players = ["Alice", "Bob", "Cara", "Dan", "Eve", "Finn", "Gia", "Hal", "Ivy", "Jo"]
+        .map((n, i) => makePlayer(`p${i + 1}`, n));
+      render(<Lobby session={makeSession({ players, mordred_enabled: true })} {...defaultProps} />);
+      expect(screen.getByRole("switch", { name: "Oberon" })).toBeEnabled();
+    });
+
+    it("reports toggle state through aria-checked", () => {
+      render(<Lobby session={makeSevenPlayerSession({ mordred_enabled: true })} {...defaultProps} />);
+      expect(screen.getByRole("switch", { name: "Mordred" })).toHaveAttribute("aria-checked", "true");
+      expect(screen.getByRole("switch", { name: "Lady of the Lake" })).toHaveAttribute("aria-checked", "false");
     });
   });
 

@@ -21,6 +21,7 @@ from models import (
 )
 from game_logic import (
     assign_roles,
+    optional_evil_slots,
     initialize_missions,
     get_role_info,
     process_team_vote,
@@ -191,68 +192,86 @@ class TestAssignRoles:
         assert Role.MORDRED in roles
         assert Role.OBERON in roles
 
-    # -- dynamic balancing ----
+    # -- optional evil roles are driven by the lobby toggles ----
+    #
+    # These replace an earlier "dynamic balancing" block that only swapped in
+    # Mordred/Oberon after 3+ games with a lopsided win rate, which meant the
+    # lobby toggles did nothing on a fresh session. The toggles are now
+    # authoritative in both directions.
 
-    def test_dynamic_balancing_replaces_minion_with_mordred_when_good_dominant(self):
-        """When good_win_rate > 0.7 and mordred_enabled, a Minion should become Mordred."""
-        gs = make_session(
-            8,
-            good_total_wins=8,
-            evil_total_wins=1,
-            mordred_enabled=True,
-        )
-        # 8-player default has a MINION and no MORDRED
+    def _roles_for(self, count, **toggles):
+        gs = make_session(count, **toggles)
         players = [p for p in gs.players if not p.is_spectator]
         assign_roles(players, gs)
-        roles = [p.role for p in players]
-        assert Role.MORDRED in roles, "Mordred should replace Minion when good dominates"
+        return [p.role for p in players]
 
-    def test_dynamic_balancing_replaces_minion_with_oberon_when_evil_dominant(self):
-        """When good_win_rate < 0.3 and oberon_enabled, a Minion should become Oberon."""
-        gs = make_session(
-            8,
-            good_total_wins=1,
-            evil_total_wins=8,
-            oberon_enabled=True,
-        )
-        players = [p for p in gs.players if not p.is_spectator]
-        assign_roles(players, gs)
-        roles = [p.role for p in players]
-        assert Role.OBERON in roles, "Oberon should replace Minion when evil dominates"
+    @pytest.mark.parametrize("count", [7, 8, 9, 10])
+    def test_mordred_dealt_when_enabled(self, count):
+        roles = self._roles_for(count, mordred_enabled=True, oberon_enabled=False)
+        assert Role.MORDRED in roles
+        assert Role.OBERON not in roles
 
-    def test_dynamic_balancing_not_triggered_under_3_games(self):
-        """Balancing should not kick in when total games < 3."""
-        gs = make_session(
-            8,
-            good_total_wins=2,
-            evil_total_wins=0,  # 100% good win rate but only 2 games
-            mordred_enabled=True,
-        )
-        players = [p for p in gs.players if not p.is_spectator]
-        assign_roles(players, gs)
-        roles = [p.role for p in players]
-        # 8-player base config has MINION, not MORDRED
-        assert Role.MINION in roles, "Balancing should not trigger with < 3 total games"
-
-    def test_dynamic_balancing_skipped_under_7_players(self):
-        """Balancing only kicks in at 7+ players."""
-        gs = make_session(
-            6,
-            good_total_wins=8,
-            evil_total_wins=1,
-            mordred_enabled=True,
-        )
-        players = [p for p in gs.players if not p.is_spectator]
-        assign_roles(players, gs)
-        roles = [p.role for p in players]
-        # 6-player config has no MINION and no MORDRED -- should stay unchanged
+    @pytest.mark.parametrize("count", [7, 8, 9, 10])
+    def test_oberon_dealt_when_enabled(self, count):
+        roles = self._roles_for(count, mordred_enabled=False, oberon_enabled=True)
+        assert Role.OBERON in roles
         assert Role.MORDRED not in roles
 
-    def test_dynamic_balancing_no_session_object(self):
-        """If game_session is None, no balancing happens (no crash)."""
-        players = make_players(8)
+    @pytest.mark.parametrize("count", [7, 8, 9, 10])
+    def test_neither_dealt_when_both_disabled(self, count):
+        """Notably this now removes Oberon at 7 and Mordred at 9, which the base
+        ROLE_CONFIGS used to deal unconditionally."""
+        roles = self._roles_for(count, mordred_enabled=False, oberon_enabled=False)
+        assert Role.MORDRED not in roles
+        assert Role.OBERON not in roles
+        assert Role.MINION in roles
+
+    def test_both_dealt_at_ten_players(self):
+        """10 players is the only count with two flexible evil slots."""
+        roles = self._roles_for(10, mordred_enabled=True, oberon_enabled=True)
+        assert Role.MORDRED in roles
+        assert Role.OBERON in roles
+
+    @pytest.mark.parametrize("count", [7, 8, 9])
+    def test_second_optional_role_dropped_when_only_one_slot(self, count):
+        """With one flexible slot, Mordred wins and Oberon is dropped rather than
+        inflating the evil count."""
+        roles = self._roles_for(count, mordred_enabled=True, oberon_enabled=True)
+        assert Role.MORDRED in roles
+        assert Role.OBERON not in roles
+
+    @pytest.mark.parametrize("count", [5, 6])
+    def test_toggles_ignored_when_no_flexible_slot(self, count):
+        roles = self._roles_for(count, mordred_enabled=True, oberon_enabled=True)
+        assert Role.MORDRED not in roles
+        assert Role.OBERON not in roles
+
+    @pytest.mark.parametrize(
+        "count,expected_good,expected_evil",
+        [(5, 3, 2), (6, 4, 2), (7, 4, 3), (8, 5, 3), (9, 6, 3), (10, 6, 4)],
+    )
+    @pytest.mark.parametrize("mordred,oberon", [(False, False), (True, False), (False, True), (True, True)])
+    def test_ratio_preserved_for_every_toggle_combination(
+        self, count, expected_good, expected_evil, mordred, oberon
+    ):
+        """The whole point of only rewriting flexible evil slots: no toggle
+        combination may ever change the good/evil balance."""
+        roles = self._roles_for(count, mordred_enabled=mordred, oberon_enabled=oberon)
+        assert sum(1 for r in roles if r in GOOD_ROLES) == expected_good
+        assert sum(1 for r in roles if r in EVIL_ROLES) == expected_evil
+
+    @pytest.mark.parametrize("count,expected", [(5, 0), (6, 0), (7, 1), (8, 1), (9, 1), (10, 2)])
+    def test_optional_evil_slots(self, count, expected):
+        assert optional_evil_slots(count) == expected
+
+    def test_optional_evil_slots_unknown_count(self):
+        assert optional_evil_slots(4) == 0
+
+    def test_no_session_object_keeps_base_config(self):
+        """Direct calls without a session leave the base config alone."""
+        players = make_players(7)
         assign_roles(players, None)
-        # Should work without error; no assertion on specific roles since it's random
+        assert Role.OBERON in [p.role for p in players]
 
 
 # ===========================================================================
