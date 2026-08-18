@@ -47,12 +47,20 @@ function clearSession() {
 }
 
 function App() {
-  const saved = loadSession();
-  const savedSpectator = loadSpectatorSession();
-  const [sessionId, setSessionId] = useState<string | null>(saved?.sessionId ?? savedSpectator?.sessionId ?? null);
-  const [playerId, setPlayerId] = useState<string | null>(saved?.playerId ?? savedSpectator?.playerId ?? null);
-  const [playerToken, setPlayerToken] = useState<string | null>(saved?.playerToken ?? savedSpectator?.playerToken ?? null);
-  const [spectatorMode, setSpectatorMode] = useState<boolean>(!!savedSpectator && !saved);
+  // Lazy initializers: these were running a localStorage read plus a JSON.parse
+  // on every render, and App re-renders on every websocket game_state message.
+  const [sessionId, setSessionId] = useState<string | null>(
+    () => loadSession()?.sessionId ?? loadSpectatorSession()?.sessionId ?? null
+  );
+  const [playerId, setPlayerId] = useState<string | null>(
+    () => loadSession()?.playerId ?? loadSpectatorSession()?.playerId ?? null
+  );
+  const [playerToken, setPlayerToken] = useState<string | null>(
+    () => loadSession()?.playerToken ?? loadSpectatorSession()?.playerToken ?? null
+  );
+  const [spectatorMode, setSpectatorMode] = useState<boolean>(
+    () => !!loadSpectatorSession() && !loadSession()
+  );
   const [spectatorError, setSpectatorError] = useState<string | null>(null);
 
   const { isConnected, gameState: wsGameState } = useWebSocket(sessionId, playerId, playerToken);
@@ -167,10 +175,10 @@ function App() {
 
   if (spectatorMode && !effectiveState && !spectatorError) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-xl text-gray-300 mb-2">Connecting to session...</p>
-          <p className="text-sm text-gray-500">Session ID: {sessionId?.slice(0, 8)}...</p>
+          <p className="text-xl text-gray-200 mb-2" aria-live="polite">Connecting to session...</p>
+          <p className="text-sm text-gray-400 font-mono">{sessionId?.slice(0, 8)}</p>
         </div>
       </div>
     );

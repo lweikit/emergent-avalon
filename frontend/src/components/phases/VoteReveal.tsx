@@ -12,7 +12,7 @@ export default function VoteReveal({ session, currentMission }: PhaseProps) {
           {session.players.filter((p) => !p.is_spectator).map((player) => {
             const vote = currentMission.votes?.[player.id];
             return (
-              <div key={player.id} className={`p-2 rounded border text-sm font-medium ${vote ? "bg-green-900/40 border-green-500 text-green-300" : "bg-red-900/40 border-red-500 text-red-300"}`}>
+              <div key={player.id} className={`p-2 rounded border text-sm font-medium ${vote ? "bg-green-900/40 border-green-500 text-green-200" : "bg-red-900/40 border-red-500 text-red-200"}`}>
                 {player.name}: {vote ? "Approve" : "Reject"}
               </div>
             );
@@ -20,10 +20,10 @@ export default function VoteReveal({ session, currentMission }: PhaseProps) {
         </div>
       </div>
       <div className="text-center">
-        <p className={`text-lg font-bold ${currentMission.team_approved ? "text-green-400" : "text-red-400"}`}>
+        <p className={`text-lg font-bold ${currentMission.team_approved ? "text-green-300" : "text-red-300"}`}>
           Team {currentMission.team_approved ? "APPROVED" : "REJECTED"}
         </p>
-        <p className="text-xs text-gray-500 mt-2">Advancing in a few seconds...</p>
+        <p className="text-xs text-gray-400 mt-2">Advancing in a few seconds...</p>
       </div>
     </div>
   );

@@ -28,7 +28,7 @@ export default function MissionExecution({ session, currentMission, playerId, pl
       )}
       {currentMission.mission_votes && currentMission.mission_votes.total_votes > 0 && (
         <div className="mt-4 bg-gray-700 p-3 rounded-lg">
-          <p className="text-sm text-gray-300">{currentMission.mission_votes.total_votes} of {currentMission.team_members.length} team members have voted</p>
+          <p className="text-sm text-gray-200">{currentMission.mission_votes.total_votes} of {currentMission.team_members.length} team members have voted</p>
         </div>
       )}
     </div>

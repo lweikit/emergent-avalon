@@ -8,8 +8,17 @@ export default function LadyOfTheLake({ session, currentPlayer, playerId, player
   const [ladyResult, setLadyResult] = useState<LadyResult | null>(null);
   const [showLadyResult, setShowLadyResult] = useState(false);
 
+  const holder = session.players.find((p) => p.lady_of_the_lake);
+
   return (
     <div>
+      {/* Without this, everyone except the holder saw a titled card with nothing
+          in it and no explanation for why the game had paused. */}
+      {!currentPlayer.lady_of_the_lake && (
+        <p className="text-center text-sm text-gray-300">
+          <span className="font-bold text-yellow-300">{holder?.name ?? "The holder"}</span> is using the Lady of the Lake to check a player&rsquo;s allegiance...
+        </p>
+      )}
       {currentPlayer.lady_of_the_lake && (
         <div className="space-y-4">
           <p className="font-semibold text-yellow-300">Choose a player to reveal their allegiance:</p>

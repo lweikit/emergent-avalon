@@ -35,7 +35,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       expect(screen.getByPlaceholderText("Enter your name...")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Session name...")).toBeInTheDocument();
-      expect(screen.getAllByPlaceholderText("Session ID...").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ").length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders Create Session and Join Session buttons", () => {
@@ -48,7 +48,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       expect(screen.getByText("Spectate")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Your name (optional)")).toBeInTheDocument();
-      expect(screen.getAllByPlaceholderText("Session ID...").length).toBe(2);
+      expect(screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ").length).toBe(2);
       expect(screen.getByText("Watch Game")).toBeInTheDocument();
     });
 
@@ -104,7 +104,7 @@ describe("MainMenu", () => {
       const user = userEvent.setup();
       await user.type(screen.getByPlaceholderText("Enter your name..."), "Alice");
       // There are two "Session ID..." placeholders; get the first one (join section)
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[0], "abc123");
 
       const joinBtn = screen.getByText("Join Session");
@@ -130,7 +130,7 @@ describe("MainMenu", () => {
     it("Watch Game button is enabled when spectate session ID is filled", async () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[1], "some-id");
 
       const watchBtn = screen.getByText("Watch Game");
@@ -164,7 +164,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
       await user.type(screen.getByPlaceholderText("Enter your name..."), "  Bob  ");
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[0], "  abc123  ");
 
       await user.click(screen.getByText("Join Session"));
@@ -177,7 +177,7 @@ describe("MainMenu", () => {
     it("trims spectate session ID when watching", async () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[1], "  watch-id  ");
 
       await user.click(screen.getByText("Watch Game"));
@@ -189,7 +189,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
       await user.type(screen.getByPlaceholderText("Your name (optional)"), "   ");
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[1], "watch-id");
 
       await user.click(screen.getByText("Watch Game"));
@@ -201,7 +201,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
       await user.type(screen.getByPlaceholderText("Your name (optional)"), " Viewer ");
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[1], "watch-id");
 
       await user.click(screen.getByText("Watch Game"));
@@ -254,7 +254,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
       await user.type(screen.getByPlaceholderText("Enter your name..."), "Bob");
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[0], "room-code");
       await user.click(screen.getByText("Join Session"));
 
@@ -273,7 +273,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
       await user.type(screen.getByPlaceholderText("Enter your name..."), "Bob");
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[0], "bad-id");
       await user.click(screen.getByText("Join Session"));
 
@@ -290,7 +290,7 @@ describe("MainMenu", () => {
       render(<MainMenu {...defaultProps} />);
       const user = userEvent.setup();
       await user.type(screen.getByPlaceholderText("Enter your name..."), "Bob");
-      const sessionIdInputs = screen.getAllByPlaceholderText("Session ID...");
+      const sessionIdInputs = screen.getAllByPlaceholderText("Room code, e.g. KQ7MPZ");
       await user.type(sessionIdInputs[0], "some-id");
       await user.click(screen.getByText("Join Session"));
 

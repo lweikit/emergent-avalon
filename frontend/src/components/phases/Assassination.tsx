@@ -6,7 +6,7 @@ export default function Assassination({ session, playerId, playerToken, roleInfo
   const [assassinTarget, setAssassinTarget] = useState("");
 
   if (roleInfo?.role !== "assassin") {
-    return <p className="text-center text-sm text-gray-400">The Assassin is choosing their target...</p>;
+    return <p className="text-center text-sm text-gray-300">The Assassin is choosing their target...</p>;
   }
 
   return (
