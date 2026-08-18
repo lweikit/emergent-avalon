@@ -1,5 +1,5 @@
 import api from "../api";
-import { Session } from "../types";
+import { Session, optionalEvilSlots } from "../types";
 import useAsyncAction from "../hooks/useAsyncAction";
 import RuleBook from "./RuleBook";
 import CopyCodeButton from "./CopyCodeButton";
@@ -16,27 +16,34 @@ interface SettingToggleProps {
   description: string;
   enabled: boolean;
   onToggle: () => void;
+  unavailableReason?: string | null;
   activeColor: string;
 }
 
-function SettingToggle({ name, description, enabled, onToggle, activeColor }: SettingToggleProps) {
+function SettingToggle({ name, description, enabled, onToggle, unavailableReason, activeColor }: SettingToggleProps) {
+  const disabled = !!unavailableReason;
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <h4 className="font-semibold text-sm text-gray-200">{name}</h4>
-        <p className="text-xs text-gray-400">{description}</p>
+        <h4 className={`font-semibold text-sm ${disabled ? "text-gray-400" : "text-gray-200"}`}>{name}</h4>
+        <p className="text-xs text-gray-400">{unavailableReason || description}</p>
       </div>
       <button
         type="button"
         role="switch"
-        aria-checked={enabled}
+        aria-checked={enabled && !disabled}
         aria-label={name}
         onClick={onToggle}
+        disabled={disabled}
         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex-shrink-0 min-h-[36px] ${
-          enabled ? `${activeColor} text-white` : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+          disabled
+            ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+            : enabled
+            ? `${activeColor} text-white`
+            : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
       >
-        {enabled ? "On" : "Off"}
+        {enabled && !disabled ? "On" : "Off"}
       </button>
     </div>
   );
@@ -56,6 +63,19 @@ export default function Lobby({ session, playerId, isConnected, onLeave }: Lobby
   const toggleLady = () => execute(() => api.toggleLadyOfLake(session.id, !session.lady_of_the_lake_enabled));
   const toggleMordred = () => execute(() => api.toggleMordred(session.id, !session.mordred_enabled));
   const toggleOberon = () => execute(() => api.toggleOberon(session.id, !session.oberon_enabled));
+
+  // Only so many optional evil roles fit at a given player count, and the
+  // backend fills them Mordred-first. Say so rather than showing a toggle that
+  // silently won't apply.
+  const slots = optionalEvilSlots(activePlayers.length);
+  const mordredUnavailable = slots < 1 ? "Needs 7+ players" : null;
+  const oberonUnavailable =
+    slots < 1
+      ? "Needs 7+ players"
+      : slots === 1 && session.mordred_enabled
+      ? `Only one optional evil role fits at ${activePlayers.length} players — Mordred has the slot`
+      : null;
+  const ladyUnavailable = activePlayers.length < 7 ? "Needs 7+ players" : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-blue-900 p-4">
@@ -122,19 +142,19 @@ export default function Lobby({ session, playerId, isConnected, onLeave }: Lobby
                 <h2 className="text-base sm:text-lg font-bold mb-4 text-white">Game Settings</h2>
                 <div className="space-y-3">
                   <SettingToggle
-                    name="Mordred" description="Evil, hidden from Merlin (9+ players)"
+                    name="Mordred" description="Evil, hidden from Merlin"
                     enabled={session.mordred_enabled} onToggle={toggleMordred}
-                    activeColor="bg-red-600 hover:bg-red-700"
+                    unavailableReason={mordredUnavailable} activeColor="bg-red-600 hover:bg-red-700"
                   />
                   <SettingToggle
-                    name="Oberon" description="Evil, hidden from everyone (7+ players)"
+                    name="Oberon" description="Evil, hidden from everyone"
                     enabled={session.oberon_enabled} onToggle={toggleOberon}
-                    activeColor="bg-red-600 hover:bg-red-700"
+                    unavailableReason={oberonUnavailable} activeColor="bg-red-600 hover:bg-red-700"
                   />
                   <SettingToggle
-                    name="Lady of the Lake" description="Reveal allegiances (7+ players)"
+                    name="Lady of the Lake" description="Reveal allegiances after missions 2, 3 and 4"
                     enabled={session.lady_of_the_lake_enabled} onToggle={toggleLady}
-                    activeColor="bg-yellow-600 hover:bg-yellow-700"
+                    unavailableReason={ladyUnavailable} activeColor="bg-yellow-600 hover:bg-yellow-700"
                   />
                 </div>
               </div>
